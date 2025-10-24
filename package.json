@@ -1,0 +1,39 @@
+{
+  "name": "markdown-di",
+  "version": "0.0.0",
+  "description": "Type-safe dependency injection for markdown using frontmatter - parser-agnostic core with adapters",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter './packages/*' build",
+    "test": "bun test",
+    "lint": "eslint packages/**/*.ts",
+    "format": "prettier --write \"packages/**/*.{ts,json,md}\""
+  },
+  "keywords": [
+    "markdown",
+    "frontmatter",
+    "dependency-injection",
+    "transclusion",
+    "composition",
+    "remark",
+    "unified",
+    "markdown-parser"
+  ],
+  "author": "Pepijn Senders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pepijnsenders/markdown-di.git"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  }
+}

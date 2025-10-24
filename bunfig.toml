@@ -1,0 +1,7 @@
+[install]
+# Use exact versions
+exact = true
+
+[install.scopes]
+# Configure workspace protocol
+"@markdown-di" = { path = "./packages" }

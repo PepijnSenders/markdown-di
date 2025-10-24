@@ -1,0 +1,53 @@
+{
+  "name": "@markdown-di/remark",
+  "version": "0.0.0",
+  "description": "Remark adapter for markdown-di with AST-based transformations",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && tsc --emitDeclarationOnly",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "markdown",
+    "remark",
+    "unified",
+    "remark-plugin",
+    "dependency-injection"
+  ],
+  "author": "Pepijn Senders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pepijnsenders/markdown-di.git",
+    "directory": "packages/remark"
+  },
+  "dependencies": {
+    "@markdown-di/core": "workspace:*",
+    "unified": "^11.0.4",
+    "unist-util-visit": "^5.0.0"
+  },
+  "peerDependencies": {
+    "remark": "^15.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "remark-frontmatter": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/unist": "^3.0.2",
+    "typescript": "^5.3.3"
+  }
+}
