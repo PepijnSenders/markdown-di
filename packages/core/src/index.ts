@@ -44,13 +44,6 @@ export class MarkdownDI {
   }
 
   /**
-   * Get all registered schema names
-   */
-  getRegisteredSchemas(): string[] {
-    return Array.from(this.schemaRegistry.keys());
-  }
-
-  /**
    * Process markdown content with dependency injection
    */
   async process(options: ProcessOptions): Promise<ProcessResult> {
