@@ -24,63 +24,7 @@ export class FrontmatterValidator {
       });
     }
 
-    // Validate blueprints structure
-    if (data.blueprints && typeof data.blueprints === 'object') {
-      this.validateBlueprints(data.blueprints, errors);
-    }
-
-    // Validate references structure
-    if (data.references && typeof data.references === 'object') {
-      this.validateReferences(data.references, errors);
-    }
-
     return errors;
-  }
-
-  private validateBlueprints(blueprints: any, errors: ValidationError[]): void {
-    for (const [groupName, group] of Object.entries(blueprints)) {
-      if (typeof group !== 'object' || group === null || Array.isArray(group)) {
-        errors.push({
-          type: 'frontmatter',
-          message: `Blueprint group "${groupName}" must be an object`,
-          location: `blueprints.${groupName}`
-        });
-        continue;
-      }
-
-      for (const [key, path] of Object.entries(group)) {
-        if (typeof path !== 'string') {
-          errors.push({
-            type: 'frontmatter',
-            message: `Blueprint "${groupName}.${key}" path must be a string`,
-            location: `blueprints.${groupName}.${key}`
-          });
-        }
-      }
-    }
-  }
-
-  private validateReferences(references: any, errors: ValidationError[]): void {
-    for (const [groupName, files] of Object.entries(references)) {
-      if (!Array.isArray(files)) {
-        errors.push({
-          type: 'frontmatter',
-          message: `Reference group "${groupName}" must be an array`,
-          location: `references.${groupName}`
-        });
-        continue;
-      }
-
-      files.forEach((file, index) => {
-        if (typeof file !== 'string') {
-          errors.push({
-            type: 'frontmatter',
-            message: `Reference "${groupName}[${index}]" path must be a string`,
-            location: `references.${groupName}[${index}]`
-          });
-        }
-      });
-    }
   }
 }
 

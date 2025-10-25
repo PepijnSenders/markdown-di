@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import type { ValidationError } from './types';
-import * as yaml from 'yaml';
+import { z } from "zod";
+import type { ValidationError } from "./types";
+import * as yaml from "yaml";
 
 /**
  * Schema validation options
@@ -14,10 +14,6 @@ export interface SchemaOptions {
    * Whether to extend the default markdown-di schema
    */
   extend?: boolean;
-  /**
-   * Strict mode - fail on additional properties
-   */
-  strict?: boolean;
 }
 
 /**
@@ -44,12 +40,9 @@ export interface SchemaValidationResult {
  */
 export class SchemaValidator {
   private schema: z.ZodSchema;
-  private strict: boolean;
 
   constructor(options: SchemaOptions = {}) {
-    const { schema, extend = true, strict = false } = options;
-
-    this.strict = strict;
+    const { schema, extend = true } = options;
 
     if (schema) {
       if (extend) {
@@ -75,38 +68,41 @@ export class SchemaValidator {
       return {
         valid: true,
         errors: [],
-        data: result.data
+        data: result.data,
       };
     }
 
     // Convert Zod errors to ValidationError format
-    const errors: ValidationError[] = result.error.issues.map(issue => ({
-      type: 'schema',
+    const errors: ValidationError[] = result.error.issues.map((issue) => ({
+      type: "schema",
       message: this.formatErrorMessage(issue),
-      location: issue.path.join('.') || 'root'
+      location: issue.path.join(".") || "root",
     }));
 
     return {
       valid: false,
-      errors
+      errors,
     };
   }
 
   /**
    * Generate TypeScript type definition from schema
    */
-  generateTypeDefinition(typeName: string = 'Frontmatter'): string {
+  generateTypeDefinition(typeName: string = "Frontmatter"): string {
     return this.generateType(this.schema, typeName);
   }
 
   /**
    * Validate a single file with schema
    */
-  async validateFile(filePath: string, options?: SchemaOptions): Promise<SchemaValidationResult> {
-    const { readFileSync } = await import('fs');
-    const { FrontmatterProcessor } = await import('./processor');
+  async validateFile(
+    filePath: string,
+    options?: SchemaOptions
+  ): Promise<SchemaValidationResult> {
+    const { readFileSync } = await import("fs");
+    const { FrontmatterProcessor } = await import("./processor");
 
-    const content = readFileSync(filePath, 'utf-8');
+    const content = readFileSync(filePath, "utf-8");
     const frontmatterProcessor = new FrontmatterProcessor();
     const { frontmatter } = frontmatterProcessor.extract(content);
 
@@ -116,46 +112,48 @@ export class SchemaValidator {
 
   private formatErrorMessage(issue: z.ZodIssue): string {
     switch (issue.code) {
-      case 'invalid_type':
+      case "invalid_type":
         return `Expected ${issue.expected}, received ${issue.received}`;
-      case 'invalid_literal':
+      case "invalid_literal":
         return `Invalid literal value, expected ${issue.expected}`;
-      case 'unrecognized_keys':
-        return `Unrecognized key${issue.keys.length > 1 ? 's' : ''}: ${issue.keys.join(', ')}`;
-      case 'invalid_union':
-        return `Invalid union - should match at least one of ${issue.unionErrors.map(e => JSON.stringify(e)).join(', ')}`;
-      case 'invalid_enum_value':
-        return `Invalid enum value. Expected ${issue.options.join(', ')}, received ${issue.received}`;
-      case 'invalid_arguments':
+      case "unrecognized_keys":
+        return `Unrecognized key${issue.keys.length > 1 ? "s" : ""}: ${issue.keys.join(", ")}`;
+      case "invalid_union":
+        return `Invalid union - should match at least one of ${issue.unionErrors.map((e) => JSON.stringify(e)).join(", ")}`;
+      case "invalid_enum_value":
+        return `Invalid enum value. Expected ${issue.options.join(", ")}, received ${issue.received}`;
+      case "invalid_arguments":
         return `Invalid arguments: ${issue.message}`;
-      case 'invalid_return_type':
+      case "invalid_return_type":
         return `Invalid return type: ${issue.message}`;
-      case 'invalid_date':
+      case "invalid_date":
         return `Invalid date: ${issue.message}`;
-      case 'invalid_string':
+      case "invalid_string":
         return `Invalid string: ${issue.message}`;
-      case 'too_small':
+      case "too_small":
         return `Value too small: ${issue.message}`;
-      case 'too_big':
+      case "too_big":
         return `Value too big: ${issue.message}`;
-      case 'invalid_intersection_types':
+      case "invalid_intersection_types":
         return `Invalid intersection types: ${issue.message}`;
-      case 'not_multiple_of':
+      case "not_multiple_of":
         return `Not multiple of ${issue.multipleOf}: ${JSON.stringify((issue as any).received)}`;
-      case 'not_finite':
+      case "not_finite":
         return `Value not finite: ${issue.message}`;
       default:
-        return issue.message || 'Schema validation error';
+        return issue.message || "Schema validation error";
     }
   }
 
   public generateType(schema: z.ZodSchema, typeName: string): string {
     if (schema instanceof z.ZodObject) {
       const shape = (schema as any)._def.shape();
-      const properties = Object.entries(shape).map(([key, def]) => {
-        const type = this.zodToType(def as z.ZodType<any>);
-        return `  ${key}: ${type};`;
-      }).join('\n');
+      const properties = Object.entries(shape)
+        .map(([key, def]) => {
+          const type = this.zodToType(def as z.ZodType<any>);
+          return `  ${key}: ${type};`;
+        })
+        .join("\n");
 
       return `export interface ${typeName} {\n${properties}\n}`;
     }
@@ -164,16 +162,21 @@ export class SchemaValidator {
   }
 
   private zodToType(schema: z.ZodType<any>): string {
-    if (schema instanceof z.ZodString) return 'string';
-    if (schema instanceof z.ZodNumber) return 'number';
-    if (schema instanceof z.ZodBoolean) return 'boolean';
-    if (schema instanceof z.ZodArray) return `${this.zodToType(schema.element)}[]`;
-    if (schema instanceof z.ZodRecord) return `Record<string, ${this.zodToType((schema as any)._def.valueType as z.ZodType<any>)}>`;
-    if (schema instanceof z.ZodOptional) return `${this.zodToType(schema.unwrap())} | undefined`;
+    if (schema instanceof z.ZodString) return "string";
+    if (schema instanceof z.ZodNumber) return "number";
+    if (schema instanceof z.ZodBoolean) return "boolean";
+    if (schema instanceof z.ZodArray)
+      return `${this.zodToType(schema.element)}[]`;
+    if (schema instanceof z.ZodRecord)
+      return `Record<string, ${this.zodToType((schema as any)._def.valueType as z.ZodType<any>)}>`;
+    if (schema instanceof z.ZodOptional)
+      return `${this.zodToType(schema.unwrap())} | undefined`;
     if (schema instanceof z.ZodUnion) {
-      return schema.options.map((opt: z.ZodType<any>) => this.zodToType(opt)).join(' | ');
+      return schema.options
+        .map((opt: z.ZodType<any>) => this.zodToType(opt))
+        .join(" | ");
     }
-    return 'any';
+    return "any";
   }
 }
 
@@ -183,7 +186,7 @@ export { z };
 // Helper function for schema creation
 export function createSchema<T extends z.ZodSchema>(
   schema: T,
-  options: Omit<SchemaOptions, 'schema'> = {}
+  options: Omit<SchemaOptions, "schema"> = {}
 ): SchemaValidator {
   return new SchemaValidator({ ...options, schema });
 }
@@ -196,19 +199,28 @@ export function parseYamlSchema(yamlString: string): z.ZodSchema<any> {
     const parsed = yaml.parse(yamlString);
     return convertToZodSchema(parsed);
   } catch (error) {
-    throw new Error(`Invalid YAML schema: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Invalid YAML schema: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
 /**
  * Validate inline schema definition in YAML
  */
-export function validateInlineSchema(yamlString: string): { valid: boolean; schema?: z.ZodSchema<any>; errors: string[] } {
+export function validateInlineSchema(yamlString: string): {
+  valid: boolean;
+  schema?: z.ZodSchema<any>;
+  errors: string[];
+} {
   try {
     const schema = parseYamlSchema(yamlString);
     return { valid: true, schema, errors: [] };
   } catch (error) {
-    return { valid: false, errors: [error instanceof Error ? error.message : String(error)] };
+    return {
+      valid: false,
+      errors: [error instanceof Error ? error.message : String(error)],
+    };
   }
 }
 
@@ -216,8 +228,8 @@ export function validateInlineSchema(yamlString: string): { valid: boolean; sche
  * Convert a plain object schema definition to Zod schema
  */
 function convertToZodSchema(def: any): z.ZodSchema<any> {
-  if (typeof def !== 'object' || def === null) {
-    throw new Error('Schema must be an object');
+  if (typeof def !== "object" || def === null) {
+    throw new Error("Schema must be an object");
   }
 
   const shape: Record<string, z.ZodType<any>> = {};
@@ -233,22 +245,22 @@ function convertToZodSchema(def: any): z.ZodSchema<any> {
  * Convert a single schema field to Zod type
  */
 function convertToZodType(key: string, def: any): z.ZodType<any> {
-  if (typeof def === 'string') {
+  if (typeof def === "string") {
     // Basic type string
     switch (def.toLowerCase()) {
-      case 'string':
+      case "string":
         return z.string();
-      case 'number':
+      case "number":
         return z.number();
-      case 'boolean':
+      case "boolean":
         return z.boolean();
-      case 'date':
+      case "date":
         return z.string().datetime();
-      case 'email':
+      case "email":
         return z.string().email();
-      case 'url':
+      case "url":
         return z.string().url();
-      case 'uuid':
+      case "uuid":
         return z.string().uuid();
       default:
         // Assume it's a custom type or reference
@@ -256,18 +268,18 @@ function convertToZodType(key: string, def: any): z.ZodType<any> {
     }
   }
 
-  if (typeof def === 'object' && def !== null) {
+  if (typeof def === "object" && def !== null) {
     if (def.type) {
       // Object with type specification
       let result: z.ZodType<any> = convertToZodType(key, def.type);
 
       // Add validations based on type
-      if (def.type === 'string') {
+      if (def.type === "string") {
         let stringType = result as z.ZodString;
         if (def.min !== undefined) stringType = stringType.min(def.min);
         if (def.max !== undefined) stringType = stringType.max(def.max);
         result = stringType;
-      } else if (def.type === 'number') {
+      } else if (def.type === "number") {
         let numberType = result as z.ZodNumber;
         if (def.min !== undefined) numberType = numberType.min(def.min);
         if (def.max !== undefined) numberType = numberType.max(def.max);
@@ -298,7 +310,10 @@ function convertToZodType(key: string, def: any): z.ZodType<any> {
       // Nested object
       const nestedShape: Record<string, z.ZodType<any>> = {};
       for (const [nestedKey, nestedValue] of Object.entries(def.properties)) {
-        nestedShape[nestedKey] = convertToZodType(`${key}.${nestedKey}`, nestedValue);
+        nestedShape[nestedKey] = convertToZodType(
+          `${key}.${nestedKey}`,
+          nestedValue
+        );
       }
       let result: z.ZodType<any> = z.object(nestedShape);
       if (def.optional) result = result.optional();
@@ -324,7 +339,7 @@ function convertToZodType(key: string, def: any): z.ZodType<any> {
  * Schema type definitions for YAML
  */
 export interface YamlSchemaField {
-  type?: 'string' | 'number' | 'boolean' | 'date' | 'email' | 'url' | 'uuid';
+  type?: "string" | "number" | "boolean" | "date" | "email" | "url" | "uuid";
   min?: number;
   max?: number;
   optional?: boolean;

@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/markdown-di/markdown-di.git",
+    "url": "https://github.com/PepijnSenders/markdown-di.git",
     "directory": "packages/core"
   },
   "dependencies": {

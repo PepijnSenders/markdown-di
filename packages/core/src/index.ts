@@ -204,15 +204,6 @@ export class MarkdownDI {
       availableVariables.add(key);
     });
 
-    // Add blueprint variables (blueprints.group.key)
-    if (frontmatter.blueprints) {
-      Object.entries(frontmatter.blueprints).forEach(([group, items]) => {
-        Object.entries(items as Record<string, string>).forEach(([key]) => {
-          availableVariables.add(`${group}.${key}`);
-        });
-      });
-    }
-
     // Add reference variables (references.group)
     if (frontmatter.references) {
       Object.entries(frontmatter.references).forEach(([group]) => {
