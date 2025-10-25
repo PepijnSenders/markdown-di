@@ -589,6 +589,88 @@ Content here.
     })
   })
 
+  describe('Nested Partials with Variables', () => {
+    test('partials with frontmatter can access parent variables', async () => {
+      // Create a partial with frontmatter
+      writeFileSync(
+        join(TEST_DIR, 'sections', 'with-vars.md'),
+        `---
+name: Partial Section
+description: A section with variables
+---
+
+# {{name}}
+
+Author: {{author}}
+Theme: {{theme}}`,
+      )
+
+      const content = `---
+name: Main Document
+author: John Doe
+theme: dark
+
+partials:
+    header: sections/with-vars.md
+---
+
+# {{name}}
+
+{{partials.header}}
+`
+
+      const mdi = new MarkdownDI()
+      const result = await mdi.process({
+        content,
+        baseDir: TEST_DIR,
+      })
+
+      expect(result.errors.length).toBe(0)
+      expect(result.content).toContain('# Partial Section')
+      expect(result.content).toContain('Author: John Doe')
+      expect(result.content).toContain('Theme: dark')
+    })
+
+    test('partials with $parent reference get parent variables', async () => {
+      // Create a partial with $parent
+      writeFileSync(
+        join(TEST_DIR, 'sections', 'with-parent.md'),
+        `---
+name: Partial Title
+author: $parent
+theme: $parent
+---
+
+# {{name}}
+
+By {{author}} - {{theme}} theme`,
+      )
+
+      const content = `---
+name: Main Document
+author: Jane Smith
+theme: light
+
+partials:
+    header: sections/with-parent.md
+---
+
+{{partials.header}}
+`
+
+      const mdi = new MarkdownDI()
+      const result = await mdi.process({
+        content,
+        baseDir: TEST_DIR,
+      })
+
+      expect(result.errors.length).toBe(0)
+      expect(result.content).toContain('# Partial Title')
+      expect(result.content).toContain('By Jane Smith')
+      expect(result.content).toContain('light theme')
+    })
+  })
+
   describe('Complex Scenarios', () => {
     test('processes document with all features combined', async () => {
       const content = `---

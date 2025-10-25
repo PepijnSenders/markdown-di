@@ -102,4 +102,10 @@ export interface ProcessingContext {
   mode: 'validate' | 'build'
   visitedFiles: Set<string>
   currentFile?: string
+  /**
+   * Parent document's frontmatter context
+   * Used when processing nested partials to allow access to parent variables
+   * via $parent or $parent('key') syntax
+   */
+  parentContext?: Record<string, unknown>
 }

@@ -298,6 +298,123 @@ Files matched by globs are:
 - Joined with `\n\n` (double newline) between them
 - Automatically excluded from `node_modules`, `dist`, and `build` directories
 
+### Partials with Frontmatter and Variables
+
+Partials can have their own frontmatter with variables that support:
+- **Access to parent variables**: Partials can use any variable from the parent document
+- **Variable overrides**: Partial frontmatter takes precedence over parent values
+- **Parent references**: Use `$parent` or `$parent('key')` to explicitly get parent values
+- **Nested partials**: Partials can include other partials
+
+#### Example: Partial Using Parent Variables
+
+**Parent document** (`main.md`):
+```markdown
+---
+name: Product Documentation
+author: John Doe
+version: 2.0
+theme: dark
+
+partials:
+  header: sections/header.md
+---
+
+{{partials.header}}
+```
+
+**Partial with frontmatter** (`sections/header.md`):
+```markdown
+---
+name: Header Section
+description: Auto-generated header
+---
+
+# {{name}}
+
+Version: {{version}} | Author: {{author}} | Theme: {{theme}}
+```
+
+**Result**: The partial can access `version`, `author`, and `theme` from the parent, while using its own `name`.
+
+#### Example: Using `$parent` to Reference Parent Variables
+
+Use `$parent` when you want the exact value from the parent with the same key:
+
+```markdown
+---
+name: Header
+author: $parent
+theme: $parent
+---
+
+# {{name}}
+
+By {{author}} - {{theme}} theme
+```
+
+Use `$parent('key')` to get a parent variable with a different key:
+
+```markdown
+---
+name: Header
+title: $parent('name')
+authorName: $parent('author')
+---
+
+# {{name}}
+
+Document: {{title}}
+Written by: {{authorName}}
+```
+
+#### Example: Nested Partials
+
+Partials can include other partials, creating a hierarchy:
+
+**Main document**:
+```markdown
+---
+name: Main Doc
+author: Alice
+theme: light
+
+partials:
+  layout: partials/layout.md
+---
+
+{{partials.layout}}
+```
+
+**Layout partial** (`partials/layout.md`):
+```markdown
+---
+name: Layout
+partials:
+  header: partials/header.md
+  footer: partials/footer.md
+---
+
+{{partials.header}}
+
+Main content area
+
+{{partials.footer}}
+```
+
+**Header partial** (`partials/header.md`):
+```markdown
+---
+name: Site Header
+---
+
+# {{name}}
+
+By {{author}} | Theme: {{theme}}
+```
+
+All nested partials have access to the parent document's variables (`author`, `theme`), while each can define their own `name`.
+
 ## Schema Validation
 
 ### Registering Custom Schemas

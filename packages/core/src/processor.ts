@@ -12,6 +12,7 @@ export class ContentProcessor {
   constructor(
     private resolver: DependencyResolver,
     private circularDetector: CircularDependencyDetector,
+    private frontmatterProcessor: FrontmatterProcessor,
   ) {}
 
   async process(
@@ -64,9 +65,20 @@ export class ContentProcessor {
           continue
         }
 
+        // Create context with parent frontmatter for nested partial processing
+        const partialContext: ProcessingContext = {
+          ...context,
+          parentContext: view as Record<string, unknown>,
+        }
+
         // Only try to resolve content if there was no resolution error
-        const fileContent = await this.resolvePartialContent(key, value, context)
+        const { content: fileContent, errors: partialErrors } = await this.resolvePartialContent(
+          key,
+          value,
+          partialContext,
+        )
         partialsMap[key] = fileContent
+        errors.push(...partialErrors)
       }
 
       view.partials = partialsMap
@@ -92,14 +104,67 @@ export class ContentProcessor {
   }
 
   /**
+   * Resolves $parent and $parent('key') references in partial frontmatter
+   * Returns the resolved frontmatter and any errors encountered
+   */
+  private resolveParentReferences(
+    partialFrontmatter: Record<string, unknown>,
+    parentContext: Record<string, unknown> | undefined,
+  ): { resolved: Record<string, unknown>; errors: ValidationError[] } {
+    const resolved: Record<string, unknown> = {}
+    const errors: ValidationError[] = []
+
+    for (const [key, value] of Object.entries(partialFrontmatter)) {
+      if (typeof value === 'string') {
+        // Check for $parent or $parent('key') pattern
+        const parentMatch = value.match(/^\$parent(?:\(['"](.+?)['"]\))?$/)
+
+        if (parentMatch) {
+          if (!parentContext) {
+            errors.push({
+              type: 'injection',
+              message: `Cannot use $parent in key "${key}": no parent context available`,
+              location: `partial.${key}`,
+            })
+            resolved[key] = value
+            continue
+          }
+
+          // Check if it's $parent('key') or just $parent
+          const parentKey = parentMatch[1] || key
+
+          if (parentKey in parentContext) {
+            resolved[key] = parentContext[parentKey]
+          } else {
+            errors.push({
+              type: 'injection',
+              message: `Parent context does not have key "${parentKey}" referenced by $parent in "${key}"`,
+              location: `partial.${key}`,
+            })
+            resolved[key] = value
+          }
+        } else {
+          resolved[key] = value
+        }
+      } else {
+        resolved[key] = value
+      }
+    }
+
+    return { resolved, errors }
+  }
+
+  /**
    * Resolve a partial definition to its file content
+   * Now supports partials with frontmatter and variable interpolation
    */
   private async resolvePartialContent(
     _key: string,
     value: string | string[],
     context: ProcessingContext,
-  ): Promise<string> {
+  ): Promise<{ content: string; errors: ValidationError[] }> {
     const contents: string[] = []
+    const allErrors: ValidationError[] = []
 
     const patterns = Array.isArray(value) ? value : [value]
 
@@ -109,18 +174,114 @@ export class ContentProcessor {
         // Treat as glob pattern
         const filePaths = this.resolver.resolveGlobPattern(context.baseDir, pattern)
         for (const filePath of filePaths) {
-          const content = readFileSync(filePath, 'utf-8')
+          const { content, errors } = await this.processPartialFile(filePath, context)
           contents.push(content)
+          allErrors.push(...errors)
         }
       } else {
         // Treat as single file path
         const fullPath = this.resolver.resolveFilePath(context.baseDir, pattern)
-        const content = readFileSync(fullPath, 'utf-8')
+        const { content, errors } = await this.processPartialFile(fullPath, context)
         contents.push(content)
+        allErrors.push(...errors)
       }
     }
 
-    return contents.join('\n\n')
+    return {
+      content: contents.join('\n\n'),
+      errors: allErrors,
+    }
+  }
+
+  /**
+   * Process a single partial file, handling frontmatter and variable interpolation
+   */
+  private async processPartialFile(
+    filePath: string,
+    context: ProcessingContext,
+  ): Promise<{ content: string; errors: ValidationError[] }> {
+    const rawContent = readFileSync(filePath, 'utf-8')
+    const errors: ValidationError[] = []
+
+    // Check for circular dependencies
+    if (context.visitedFiles.has(filePath)) {
+      errors.push({
+        type: 'circular',
+        message: `Circular dependency detected: file ${filePath} is already being processed`,
+        location: filePath,
+      })
+      return { content: '', errors }
+    }
+
+    // Add to visited files
+    context.visitedFiles.add(filePath)
+
+    // Try to extract frontmatter from the partial
+    const { frontmatter, body, errors: fmErrors } = this.frontmatterProcessor.extract(rawContent)
+
+    // If no frontmatter found, return content as-is (backward compatibility)
+    if (fmErrors.length > 0 || Object.keys(frontmatter).length === 0) {
+      // Remove from visited files before returning
+      context.visitedFiles.delete(filePath)
+      return { content: rawContent, errors: [] }
+    }
+
+    // Resolve $parent references in partial's frontmatter
+    const { resolved: partialFrontmatter, errors: parentErrors } = this.resolveParentReferences(
+      frontmatter,
+      context.parentContext,
+    )
+    errors.push(...parentErrors)
+
+    // Merge contexts: partial frontmatter takes precedence over parent
+    const mergedContext = {
+      ...(context.parentContext || {}),
+      ...partialFrontmatter,
+    }
+
+    // If the partial has its own partials, recursively resolve them
+    if (partialFrontmatter.partials) {
+      const partialsMap: Record<string, string> = {}
+
+      for (const [key, value] of Object.entries(partialFrontmatter.partials)) {
+        // Create nested context with current partial as parent
+        const nestedContext: ProcessingContext = {
+          ...context,
+          parentContext: mergedContext,
+          currentFile: filePath,
+        }
+
+        const { content: partialContent, errors: partialErrors } = await this.resolvePartialContent(
+          key,
+          value as string | string[],
+          nestedContext,
+        )
+        partialsMap[key] = partialContent
+        errors.push(...partialErrors)
+      }
+
+      mergedContext.partials = partialsMap
+    }
+
+    // Render the partial body with merged context using Mustache
+    let processedContent: string
+    try {
+      processedContent = Mustache.render(body, mergedContext, {}, {
+        escape: (text) => text // Don't escape - return text as-is
+      })
+    } catch (error) {
+      errors.push({
+        type: 'injection',
+        message: `Mustache templating error in partial ${filePath}: ${error}`,
+        location: filePath,
+      })
+      processedContent = body
+    }
+
+    // Remove from visited files after processing
+    context.visitedFiles.delete(filePath)
+
+    return { content: processedContent, errors }
   }
 }
 
