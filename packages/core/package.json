@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Parser-agnostic dependency injection for markdown using frontmatter",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -35,8 +35,10 @@
     "directory": "packages/core"
   },
   "dependencies": {
-    "gray-matter": "^4.0.3",
+    "@types/mustache": "4.2.6",
     "fast-glob": "^3.3.2",
+    "gray-matter": "^4.0.3",
+    "mustache": "4.2.0",
     "yaml": "^2.3.4",
     "zod": "^3.22.4"
   },

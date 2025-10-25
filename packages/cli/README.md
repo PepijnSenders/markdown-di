@@ -1,169 +1,160 @@
 # @markdown-di/cli
 
-CLI tool for building and validating markdown projects with dependency injection.
+Format markdown files with frontmatter dependency injection and TypeScript schema validation.
 
 ## Installation
 
 ```bash
-# Global installation
-bun add -g @markdown-di/cli
+# Local installation (recommended)
+bun add -D @markdown-di/cli
 
-# Or use with bunx
+# Or use with bunx (no install needed)
 bunx @markdown-di/cli
 ```
 
 ## Usage
 
-### Build Command
+Create a `markdown-di.config.ts` file in your project root:
 
-Build markdown files with dependency injection:
+```typescript
+import { z } from 'zod';
+import type { MarkdownDIConfig } from '@markdown-di/cli';
 
-```bash
-# Build all markdown files
-markdown-di build --input ./src --output ./dist
+// Define your schemas
+const documentSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  partials: z.record(z.string()).optional()
+});
 
-# Shorter alias
-mdi build -i ./src -o ./dist
+const blogPostSchema = z.object({
+  name: z.string(),
+  title: z.string(),
+  author: z.string(),
+  date: z.string(),
+  partials: z.record(z.string()).optional()
+});
 
-# Watch mode
-mdi build -i ./src -o ./dist --watch
-
-# Custom glob pattern
-mdi build -i ./src -o ./dist --pattern "**/*.md"
+export default {
+  baseDir: './docs',
+  include: ['**/*.md'],
+  exclude: ['node_modules/**', '.git/**'],
+  schemas: {
+    'document': documentSchema,
+    'blog-post': blogPostSchema
+  }
+} satisfies MarkdownDIConfig;
 ```
 
-### Validate Command
-
-Validate frontmatter and references without building:
+Then run the CLI:
 
 ```bash
-# Validate all files
-markdown-di validate ./src
+# Format all markdown files
+markdown-di
 
-# Validate specific pattern
-mdi validate ./src --pattern "docs/**/*.md"
-
-# JSON output for CI
-mdi validate ./src --json
-```
-
-### Init Command
-
-Initialize a new markdown-di project:
-
-```bash
-# Create example structure
-markdown-di init ./my-project
-
-# With template
-mdi init ./my-project --template basic
+# Or with bunx
+bunx @markdown-di/cli
 ```
 
 ## Configuration
 
-Create a `markdown-di.config.js` (or `.ts`, `.json`) in your project root:
+The `markdown-di.config.ts` file accepts the following options:
 
-```javascript
+```typescript
+interface MarkdownDIConfig {
+  /**
+   * Base directory containing markdown files to format
+   * @default process.cwd()
+   */
+  baseDir?: string;
+
+  /**
+   * Glob patterns to match markdown files
+   * @default ['**\/*.md']
+   */
+  include?: string[];
+
+  /**
+   * Glob patterns to exclude
+   * @default ['node_modules/**', '.git/**']
+   */
+  exclude?: string[];
+
+  /**
+   * Registered schemas for frontmatter validation
+   * Key is the schema name (matches frontmatter.name field)
+   */
+  schemas?: Record<string, ZodSchema>;
+
+  /**
+   * Check mode - exits with error if files would change
+   * @default false
+   */
+  check?: boolean;
+}
+```
+
+## How It Works
+
+Markdown files with frontmatter define dependencies using the `partials` key:
+
+**`docs/guide.md`:**
+```markdown
+---
+name: document
+description: User guide
+
+partials:
+  intro: sections/intro.md
+  features: sections/features.md
+---
+
+# User Guide
+
+{{partials.intro}}
+
+## Features
+
+{{partials.features}}
+```
+
+The `{{partials.intro}}` syntax gets replaced with the contents of `sections/intro.md` relative to the base directory.
+
+## Schema Validation
+
+Schemas are registered in the config file. The CLI validates frontmatter against the schema that matches the `name` field:
+
+```typescript
+// In markdown-di.config.ts
+schemas: {
+  'document': documentSchema,  // Validates files with name: document
+  'blog-post': blogPostSchema   // Validates files with name: blog-post
+}
+```
+
+## CI/CD Integration
+
+Set `check: true` in your config or use an environment variable:
+
+```bash
+# In CI - check without modifying files
+CHECK=true markdown-di
+```
+
+Update your config to read the environment:
+
+```typescript
 export default {
-  input: './src',
-  output: './dist',
-  pattern: '**/*.md',
-
-  // Processing options
-  headingShift: true,
-  linkRewrite: true,
-  removeFrontmatter: false,
-
-  // Watch options
-  watch: {
-    ignored: ['node_modules', '.git'],
-    awaitWriteFinish: true
-  },
-
-  // Validation
-  strict: true, // Fail on warnings
-
-  // Hooks
-  onBuildStart: () => console.log('Building...'),
-  onBuildEnd: (stats) => console.log('Done!', stats),
-  onError: (error) => console.error(error)
-};
-```
-
-## CLI Options
-
-### `build`
-
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--input` | `-i` | Input directory | `./src` |
-| `--output` | `-o` | Output directory | `./dist` |
-| `--pattern` | `-p` | Glob pattern | `**/*.md` |
-| `--watch` | `-w` | Watch mode | `false` |
-| `--config` | `-c` | Config file path | Auto-detect |
-| `--clean` | | Clean output before build | `false` |
-
-### `validate`
-
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--pattern` | `-p` | Glob pattern | `**/*.md` |
-| `--json` | | JSON output | `false` |
-| `--strict` | | Fail on warnings | `false` |
-
-### `init`
-
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--template` | `-t` | Template name | `basic` |
-| `--force` | `-f` | Overwrite existing | `false` |
-
-## Examples
-
-### Basic Build
-
-```bash
-# Input: src/docs/intro.md
----
-name: intro
-blueprints:
-  sections:
-    overview: sections/overview.md
----
-
-{{sections.overview}}
-
-# Run build
-mdi build -i ./src -o ./dist
-
-# Output: dist/docs/intro.md (fully composed)
-```
-
-### Watch Mode for Development
-
-```bash
-# Start watch mode
-mdi build -i ./src -o ./dist --watch
-
-# Changes to src/ automatically rebuild
-```
-
-### CI/CD Integration
-
-```bash
-# Validate in CI
-mdi validate ./src --json --strict > validation-report.json
-
-# Build for production
-mdi build -i ./src -o ./dist --clean
+  baseDir: './docs',
+  check: process.env.CHECK === 'true',
+  schemas: { /* ... */ }
+} satisfies MarkdownDIConfig;
 ```
 
 ## Exit Codes
 
-- `0` - Success
-- `1` - Validation errors
-- `2` - Build errors
-- `3` - File system errors
+- `0` - Success (all files formatted or already formatted)
+- `1` - Errors found or files would be changed (in check mode)
 
 ## License
 

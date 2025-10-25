@@ -78,19 +78,16 @@ Here are some advanced patterns and techniques.
 name: main-documentation
 description: Main documentation file
 
-blueprints:
-  sections:
-    intro: ../sections/intro.md
-    conclusion: ../sections/conclusion.md
-
-references:
+partials:
+  intro: ../sections/intro.md
+  conclusion: ../sections/conclusion.md
   guides:
     - ../guides/*.md
 ---
 
 # Complete Documentation
 
-{{sections.intro}}
+{{partials.intro}}
 
 ## Core Content
 
@@ -98,9 +95,9 @@ This is the main content of the documentation.
 
 ## Related Guides
 
-{{references.guides}}
+{{partials.guides}}
 
-{{sections.conclusion}}
+{{partials.conclusion}}
 `
   );
 
@@ -111,14 +108,13 @@ This is the main content of the documentation.
 name: invalid-document
 description: Document with errors
 
-blueprints:
-  sections:
-    missing: ../sections/does-not-exist.md
+partials:
+  missing: ../sections/does-not-exist.md
 ---
 
 # Invalid Document
 
-{{sections.missing}}
+{{partials.missing}}
 {{undefined.reference}}
 `
   );
@@ -130,14 +126,13 @@ blueprints:
 name: simple-document
 description: A simple document
 
-blueprints:
-  sections:
-    intro: sections/intro.md
+partials:
+  intro: sections/intro.md
 ---
 
 # Simple Document
 
-{{sections.intro}}
+{{partials.intro}}
 
 ## More Content
 
@@ -258,7 +253,7 @@ describe('markdown-di CLI - Integration Tests', () => {
 
       expect(result.errors).toMatchSnapshot();
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some(e => e.type === 'file' || e.type === 'reference')).toBe(true);
+      expect(result.errors.some(e => e.type === 'file' || e.type === 'partial')).toBe(true);
     });
 
     test('handles files with no dependencies', async () => {
@@ -321,7 +316,7 @@ name: incomplete-doc
 
 # Document Without Description
 
-{{sections.intro}}
+{{partials.intro}}
 `;
 
       const inputFile = join(INPUT_DIR, 'bad-structure.md');
@@ -338,15 +333,14 @@ name: incomplete-doc
 name: bad-refs
 description: Document with undefined references
 
-blueprints:
-  sections:
-    intro: sections/intro.md
+partials:
+  intro: sections/intro.md
 ---
 
 # Document
 
-{{sections.intro}}
-{{sections.undefined}}
+{{partials.intro}}
+{{partials.undefined}}
 {{something.random}}
 `;
 
@@ -371,25 +365,22 @@ blueprints:
 name: complex-index
 description: Complex project index
 
-blueprints:
-  sections:
-    intro: sections/intro.md
-    conclusion: sections/conclusion.md
-
-references:
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
   guides:
     - guides/*.md
 ---
 
 # Project Index
 
-{{sections.intro}}
+{{partials.intro}}
 
 ## Guides
 
-{{references.guides}}
+{{partials.guides}}
 
-{{sections.conclusion}}
+{{partials.conclusion}}
 `;
 
       const inputFile = join(INPUT_DIR, 'complex', 'index.md');
@@ -413,14 +404,13 @@ references:
 name: mixed-content
 description: Document with various markdown elements
 
-blueprints:
-  sections:
-    intro: sections/intro.md
+partials:
+  intro: sections/intro.md
 ---
 
 # Mixed Content Document
 
-{{sections.intro}}
+{{partials.intro}}
 
 ## Code Example
 
@@ -462,9 +452,8 @@ console.log(example);
 name: formatted-doc
 description: Document with specific formatting
 
-blueprints:
-  sections:
-    conclusion: sections/conclusion.md
+partials:
+  conclusion: sections/conclusion.md
 ---
 
 # Title with **Bold** and *Italic*
@@ -475,7 +464,7 @@ This is a paragraph with [a link](https://example.com).
 
 Content here with \`inline code\`.
 
-{{sections.conclusion}}
+{{partials.conclusion}}
 
 ### Deeper Heading
 
@@ -521,14 +510,13 @@ Some content without proper frontmatter.
 name: missing-deps
 description: Document with missing dependencies
 
-blueprints:
-  sections:
-    nonexistent: sections/does-not-exist.md
+partials:
+  nonexistent: sections/does-not-exist.md
 ---
 
 # Document
 
-{{sections.nonexistent}}
+{{partials.nonexistent}}
 `;
 
       const inputFile = join(INPUT_DIR, 'missing-deps.md');
@@ -567,16 +555,15 @@ description: Document with malformed references
 name: special-chars
 description: Document with special characters
 
-blueprints:
-  sections:
-    intro: sections/intro.md
+partials:
+  intro: sections/intro.md
 ---
 
 # Special Characters Test
 
 This document contains special characters: é, ñ, ü, 中文, 日本語
 
-{{sections.intro}}
+{{partials.intro}}
 `;
 
       const inputFile = join(INPUT_DIR, 'special-chars.md');

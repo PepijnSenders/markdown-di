@@ -4,7 +4,7 @@ import type { z } from 'zod';
  * Validation error types
  */
 export interface ValidationError {
-  type: 'frontmatter' | 'reference' | 'file' | 'circular' | 'syntax' | 'schema' | 'injection';
+  type: 'frontmatter' | 'partial' | 'file' | 'circular' | 'syntax' | 'schema' | 'injection';
   message: string;
   location: string;
   details?: any;
@@ -18,27 +18,6 @@ export interface ProcessOptions {
   baseDir: string;
   mode?: 'validate' | 'build';
   currentFile?: string;
-  /**
-   * Schema validation options
-   */
-  schema?: {
-    /**
-     * Zod schema for validating frontmatter
-     */
-    schema?: any; // z.ZodSchema
-    /**
-     * Whether to extend the default markdown-di schema
-     */
-    extend?: boolean;
-    /**
-     * Strict mode - fail on additional properties
-     */
-    strict?: boolean;
-  };
-  /**
-   * Registered schemas for frontmatter validation
-   */
-  schemas?: Record<string, z.ZodSchema<any>>;
 }
 
 /**
@@ -57,8 +36,8 @@ export interface ProcessResult {
 export interface FrontmatterData {
   name: string;
   description: string;
-  blueprints?: Record<string, Record<string, string>>;
-  references?: Record<string, string[]>;
+  partials?: Record<string, string | string[]>;
+  'output-frontmatter'?: string[];
   [key: string]: any;
 }
 
@@ -66,9 +45,8 @@ export interface FrontmatterData {
  * Dependency reference
  */
 export interface DependencyReference {
-  type: 'blueprint' | 'reference';
-  group: string;
-  key?: string;
+  type: 'partial';
+  key: string;
   fullPath: string;
   sourceLine: number;
   sourceColumn: number;

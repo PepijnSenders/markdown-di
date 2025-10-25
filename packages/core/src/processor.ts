@@ -1,6 +1,8 @@
 import matter from 'gray-matter';
 import { readFileSync } from 'fs';
-import type { FrontmatterData, ProcessingContext, DependencyReference, ValidationError } from './types';
+import Mustache from 'mustache';
+import { isDynamicPattern } from 'fast-glob';
+import type { FrontmatterData, ProcessingContext, ValidationError } from './types';
 import { DependencyResolver, CircularDependencyDetector } from './resolver';
 
 /**
@@ -15,15 +17,16 @@ export class ContentProcessor {
   async process(content: string, frontmatter: FrontmatterData, context: ProcessingContext): Promise<{
     processedContent: string;
     errors: ValidationError[];
+    dependencies: string[];
   }> {
     const errors: ValidationError[] = [];
 
-    // Extract all references from content
-    const references = this.resolver.extractReferences(content, frontmatter);
+    // Resolve dependencies and check for issues
+    const { dependencies, errors: resolutionErrors } = this.resolver.resolve(frontmatter);
+    errors.push(...resolutionErrors);
 
     // Check for circular dependencies
     if (context.currentFile) {
-      const { dependencies } = this.resolver.resolve(frontmatter);
       const circularErrors = this.circularDetector.detect(context.currentFile, dependencies);
       errors.push(...circularErrors);
     }
@@ -32,157 +35,83 @@ export class ContentProcessor {
     if (context.mode === 'validate') {
       return {
         processedContent: content,
-        errors
+        errors,
+        dependencies
       };
     }
 
-    // Process replacements
-    let processedContent = content;
+    // Create view object from frontmatter
+    const view: any = { ...frontmatter };
 
-    // Sort references by position (reverse order) to avoid offset issues
-    references.sort((a, b) => b.sourceLine - a.sourceLine || b.sourceColumn - a.sourceColumn);
+    // Resolve partials to their file contents
+    // Skip if we already have resolution errors for this partial
+    if (frontmatter.partials) {
+      view.partials = {};
 
-    for (const reference of references) {
-      try {
-        const replacement = await this.getReplacementContent(reference, context);
-        processedContent = this.replaceReference(
-          processedContent,
-          reference,
-          replacement,
-          errors
+      for (const [key, value] of Object.entries(frontmatter.partials)) {
+        // Check if this partial already has an error from resolution phase
+        const hasResolutionError = resolutionErrors.some(
+          err => err.location === `partials.${key}`
         );
-      } catch (error) {
-        errors.push({
-          type: 'file',
-          message: `Failed to process reference: ${error}`,
-          location: `line ${reference.sourceLine}, column ${reference.sourceColumn}`
-        });
+
+        if (hasResolutionError) {
+          // Set empty string so Mustache doesn't break
+          view.partials[key] = '';
+          continue;
+        }
+
+        // Only try to resolve content if there was no resolution error
+        const fileContent = await this.resolvePartialContent(key, value, context);
+        view.partials[key] = fileContent;
       }
     }
 
-    return { processedContent, errors };
-  }
-
-  private async getReplacementContent(reference: DependencyReference, context: ProcessingContext): Promise<string> {
-    if (reference.type === 'blueprint' && reference.key) {
-      return this.processBlueprintFile(reference.fullPath, context);
-    } else if (reference.type === 'reference') {
-      return this.processReferenceFiles(reference.fullPath, context);
-    } else {
-      // Handle blueprint group
-      return reference.fullPath;
-    }
-  }
-
-  private async processBlueprintFile(filePath: string, context: ProcessingContext): Promise<string> {
-    if (context.visitedFiles.has(filePath)) {
-      // Already visited file - avoid circular processing
-      return readFileSync(filePath, 'utf-8');
-    }
-
-    context.visitedFiles.add(filePath);
-
+    // Use Mustache to render everything in one pass
+    let processedContent: string;
     try {
-      const content = readFileSync(filePath, 'utf-8');
-
-      // Future: Here we could recursively process the file for nested dependencies
-      // For now, just return the content as-is
-
-      return content;
+      processedContent = Mustache.render(content, view);
     } catch (error) {
-      throw new Error(`Failed to read blueprint file ${filePath}: ${error}`);
-    } finally {
-      context.visitedFiles.delete(filePath);
+      errors.push({
+        type: 'injection',
+        message: `Mustache templating error: ${error}`,
+        location: 'content'
+      });
+      processedContent = content;
     }
+
+    return { processedContent, errors, dependencies };
   }
 
-  private async processReferenceFiles(filesPath: string, context: ProcessingContext): Promise<string> {
-    const files = filesPath.split('\n').filter(Boolean);
+  /**
+   * Resolve a partial definition to its file content
+   */
+  private async resolvePartialContent(
+    key: string,
+    value: string | string[],
+    context: ProcessingContext
+  ): Promise<string> {
     const contents: string[] = [];
 
-    for (const filePath of files) {
-      if (context.visitedFiles.has(filePath)) {
-        continue; // Skip already visited files
-      }
+    const patterns = Array.isArray(value) ? value : [value];
 
-      context.visitedFiles.add(filePath);
-
-      try {
-        const content = readFileSync(filePath, 'utf-8');
+    for (const pattern of patterns) {
+      // Check if it's a glob pattern using fast-glob's helper
+      if (isDynamicPattern(pattern)) {
+        // Treat as glob pattern
+        const filePaths = this.resolver.resolveGlobPattern(context.baseDir, pattern);
+        for (const filePath of filePaths) {
+          const content = readFileSync(filePath, 'utf-8');
+          contents.push(content);
+        }
+      } else {
+        // Treat as single file path
+        const fullPath = this.resolver.resolveFilePath(context.baseDir, pattern);
+        const content = readFileSync(fullPath, 'utf-8');
         contents.push(content);
-      } catch (error) {
-        throw new Error(`Failed to read reference file ${filePath}: ${error}`);
-      } finally {
-        context.visitedFiles.delete(filePath);
       }
     }
 
     return contents.join('\n\n');
-  }
-
-  private replaceReference(
-    content: string,
-    reference: DependencyReference,
-    replacement: string,
-    errors: ValidationError[]
-  ): string {
-    const lines = content.split('\n');
-    const referencePattern = /\{\{([^}]+)\}\}/g;
-
-    // Find and replace the specific reference
-    let lineIndex = 0;
-    let found = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      let match;
-
-      while ((match = referencePattern.exec(line)) !== null) {
-        const refPath = match[1].trim();
-
-        // Check if this is the reference we're looking for
-        if (this.isMatchingReference(reference, refPath) &&
-            i + 1 === reference.sourceLine &&
-            match.index === reference.sourceColumn) {
-
-          // Replace the reference
-          lines[i] = line.substring(0, match.index) +
-                     replacement +
-                     line.substring(match.index + match[0].length);
-
-          found = true;
-          break;
-        }
-      }
-
-      if (found) break;
-    }
-
-    if (!found) {
-      errors.push({
-        type: 'reference',
-        message: `Could not find reference "{{${this.getReferencePath(reference)}}" to replace`,
-        location: `line ${reference.sourceLine}, column ${reference.sourceColumn}`
-      });
-    }
-
-    return lines.join('\n');
-  }
-
-  private isMatchingReference(reference: DependencyReference, refPath: string): boolean {
-    const expectedPath = this.getReferencePath(reference);
-    return refPath === expectedPath;
-  }
-
-  private getReferencePath(reference: DependencyReference): string {
-    if (reference.key) {
-      // The reference could be in shorthand format (group.key) or full format (blueprints.group.key)
-      return `${reference.group}.${reference.key}`;
-    } else if (reference.group) {
-      return `references.${reference.group}`;
-    } else {
-      return 'references';
-    }
   }
 }
 

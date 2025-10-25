@@ -1,5 +1,3 @@
 #!/usr/bin/env node
 
-import { program } from './index';
-
-program.parse();
+import './index.js';

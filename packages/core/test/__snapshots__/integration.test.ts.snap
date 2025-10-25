@@ -1,12 +1,11 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes simple blueprint references with shorthand syntax 1`] = `
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes simple partial references with shorthand syntax 1`] = `
 "---
-name: "test-document"
-description: "A test document"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
+name: test-document
+description: A test document
+partials:
+  intro: sections/intro.md
 ---
 
 # My Document
@@ -17,53 +16,42 @@ This is the introduction section with some content.
 "
 `;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes simple blueprint references with shorthand syntax 2`] = `[]`;
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes simple partial references with shorthand syntax 2`] = `[]`;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes blueprint references with explicit syntax 1`] = `
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes partial references with explicit syntax 1`] = `
 "---
-name: "explicit-syntax-doc"
-description: "Document using explicit blueprint syntax"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
-    intro: "sections/intro.md"
+name: explicit-syntax-doc
+description: Document using explicit partial syntax
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
 ---
 
 # My Document
 
-{{blueprints.sections.intro}}
+# Introduction
+
+This is the introduction section with some content.
 
 ## Middle Section
 
 Some content here.
 
-{{blueprints.sections.conclusion}}
+# Conclusion
+
+This wraps up the document nicely.
 "
 `;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes blueprint references with explicit syntax 2`] = `
-[
-  {
-    "location": "line 10, column 0",
-    "message": "Could not find reference "{{sections.conclusion}" to replace",
-    "type": "reference",
-  },
-  {
-    "location": "line 4, column 0",
-    "message": "Could not find reference "{{sections.intro}" to replace",
-    "type": "reference",
-  },
-]
-`;
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes partial references with explicit syntax 2`] = `[]`;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes multiple blueprint references 1`] = `
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes multiple partial references 1`] = `
 "---
-name: "multi-section-doc"
-description: "Document with multiple sections"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
-    intro: "sections/intro.md"
+name: multi-section-doc
+description: Document with multiple sections
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
 ---
 
 # Complete Document
@@ -82,31 +70,28 @@ This wraps up the document nicely.
 "
 `;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes multiple blueprint references 2`] = `[]`;
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes multiple partial references 2`] = `[]`;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes reference groups with wildcards 1`] = `
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes partial arrays with wildcards 1`] = `
 "---
-name: "guide-collection"
-description: "Collection of all guides"
-references:
-  guides:
-    - guides/*.md
+name: guide-collection
+description: Collection of all guides
+partials:
+  - guides/*.md
 ---
 
 # All Guides
 
-{{references.guides}}
+
 "
 `;
 
-exports[`MarkdownDI - Core Integration Tests Basic Processing processes mixed blueprint and reference dependencies 1`] = `
+exports[`MarkdownDI - Core Integration Tests Basic Processing processes mixed partial and reference dependencies 1`] = `
 "---
-name: "mixed-document"
-description: "Document with both blueprints and references"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
-references:
+name: mixed-document
+description: Document with both partials
+partials:
+  intro: sections/intro.md
   guides:
     - guides/getting-started.md
     - guides/advanced.md
@@ -135,18 +120,8 @@ This covers advanced topics and patterns.
 exports[`MarkdownDI - Core Integration Tests Validation validates and catches missing frontmatter fields 1`] = `
 [
   {
-    "location": "frontmatter",
-    "message": "Required field "description" is missing or invalid",
-    "type": "frontmatter",
-  },
-  {
-    "location": "line 4, column 0",
-    "message": "Reference "{{sections.intro}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
     "location": "content",
-    "message": "Injected variable 'sections.intro' is not defined in frontmatter",
+    "message": "Partial '{{partials.intro}}' is not defined in frontmatter",
     "type": "injection",
   },
 ]
@@ -155,23 +130,8 @@ exports[`MarkdownDI - Core Integration Tests Validation validates and catches mi
 exports[`MarkdownDI - Core Integration Tests Validation validates and catches undefined references 1`] = `
 [
   {
-    "location": "line 5, column 0",
-    "message": "Reference "{{sections.undefined}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Reference "{{something.random}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
     "location": "content",
-    "message": "Injected variable 'sections.undefined' is not defined in frontmatter",
-    "type": "injection",
-  },
-  {
-    "location": "content",
-    "message": "Injected variable 'something.random' is not defined in frontmatter",
+    "message": "Partial '{{partials.undefined}}' is not defined in frontmatter",
     "type": "injection",
   },
 ]
@@ -181,168 +141,33 @@ exports[`MarkdownDI - Core Integration Tests Validation validates reference synt
 [
   {
     "location": "line 5, column 0",
-    "message": "Invalid characters in reference: "invalid{nested"",
+    "message": "Invalid characters in partial reference: "invalid{nested"",
     "type": "syntax",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Invalid reference format: "too.many.levels.here.really" (expected: {{group.key}} or {{section.group.key}})",
-    "type": "syntax",
-  },
-  {
-    "location": "line 5, column 0",
-    "message": "Reference "{{invalid{nested}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Reference "{{too.many.levels.here.really}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "content",
-    "message": "Injected variable 'invalid{nested' is not defined in frontmatter",
-    "type": "injection",
-  },
-  {
-    "location": "content",
-    "message": "Injected variable 'too.many.levels.here.really' is not defined in frontmatter",
-    "type": "injection",
   },
 ]
 `;
 
-exports[`MarkdownDI - Core Integration Tests Validation validates blueprint structure 1`] = `
+exports[`MarkdownDI - Core Integration Tests Validation validates partial structure 1`] = `
 [
   {
-    "location": "blueprints.0",
-    "message": "Blueprint group "0" must be an object",
-    "type": "frontmatter",
-  },
-  {
-    "location": "blueprints.0.0",
-    "message": "Blueprint file not found: t",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.1",
-    "message": "Blueprint file not found: h",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.2",
-    "message": "Blueprint file not found: i",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.3",
-    "message": "Blueprint file not found: s",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.4",
-    "message": "Blueprint file not found: -",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.5",
-    "message": "Blueprint file not found: s",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.6",
-    "message": "Blueprint file not found: h",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.7",
-    "message": "Blueprint file not found: o",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.8",
-    "message": "Blueprint file not found: u",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.9",
-    "message": "Blueprint file not found: l",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.10",
-    "message": "Blueprint file not found: d",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.11",
-    "message": "Blueprint file not found: -",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.12",
-    "message": "Blueprint file not found: b",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.13",
-    "message": "Blueprint file not found: e",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.14",
-    "message": "Blueprint file not found: -",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.15",
-    "message": "Blueprint file not found: a",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.16",
-    "message": "Blueprint file not found: n",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.17",
-    "message": "Blueprint file not found: -",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.18",
-    "message": "Blueprint file not found: o",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.19",
-    "message": "Blueprint file not found: b",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.20",
-    "message": "Blueprint file not found: j",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.21",
-    "message": "Blueprint file not found: e",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.22",
-    "message": "Blueprint file not found: c",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.0.23",
-    "message": "Blueprint file not found: t",
+    "location": "partials.0",
+    "message": "Partial file not found: this-should-be-an-object",
     "type": "file",
   },
 ]
 `;
 
-exports[`MarkdownDI - Core Integration Tests Schema Validation validates with Zod schema from options 1`] = `[]`;
+exports[`MarkdownDI - Core Integration Tests Validation validates reference structure 1`] = `
+[
+  {
+    "location": "partials.guides",
+    "message": "Partial file not found: should-be-an-array",
+    "type": "file",
+  },
+]
+`;
+
+exports[`MarkdownDI - Core Integration Tests Schema Validation validates with registered schema 1`] = `[]`;
 
 exports[`MarkdownDI - Core Integration Tests Schema Validation catches schema validation errors 1`] = `
 [
@@ -359,26 +184,13 @@ exports[`MarkdownDI - Core Integration Tests Schema Validation catches schema va
 ]
 `;
 
-exports[`MarkdownDI - Core Integration Tests Schema Validation registers and uses named schemas 1`] = `
-[
-  {
-    "location": "publishDate",
-    "message": "Expected string, received date",
-    "type": "schema",
-  },
-  {
-    "location": "publishDate",
-    "message": "Schema validation failed: Expected string, received date",
-    "type": "schema",
-  },
-]
-`;
+exports[`MarkdownDI - Core Integration Tests Schema Validation registers and uses named schemas 1`] = `[]`;
 
 exports[`MarkdownDI - Core Integration Tests Schema Validation catches errors for unregistered schema references 1`] = `
 [
   {
-    "location": "schema",
-    "message": "Referenced schema 'nonexistent-schema' is not registered",
+    "location": "frontmatter.schema",
+    "message": "Schema "nonexistent-schema" not found in registry. Register it with registerSchema() first.",
     "type": "schema",
   },
 ]
@@ -405,13 +217,8 @@ exports[`MarkdownDI - Core Integration Tests Dependency Resolution includes all 
 exports[`MarkdownDI - Core Integration Tests Error Handling handles missing files gracefully 1`] = `
 [
   {
-    "location": "blueprints.sections.missing",
-    "message": "Blueprint file not found: sections/does-not-exist.md",
-    "type": "file",
-  },
-  {
-    "location": "line 4, column 0",
-    "message": "Failed to process reference: Error: Failed to read blueprint file /Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/does-not-exist.md: Error: ENOENT: no such file or directory, open '/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/does-not-exist.md'",
+    "location": "partials.missing",
+    "message": "Partial file not found: sections/does-not-exist.md",
     "type": "file",
   },
 ]
@@ -428,16 +235,6 @@ exports[`MarkdownDI - Core Integration Tests Error Handling handles malformed fr
 ,
     "type": "frontmatter",
   },
-  {
-    "location": "frontmatter",
-    "message": "Required field "name" is missing or invalid",
-    "type": "frontmatter",
-  },
-  {
-    "location": "frontmatter",
-    "message": "Required field "description" is missing or invalid",
-    "type": "frontmatter",
-  },
 ]
 `;
 
@@ -449,23 +246,8 @@ exports[`MarkdownDI - Core Integration Tests Error Handling handles empty frontm
     "type": "frontmatter",
   },
   {
-    "location": "frontmatter",
-    "message": "Required field "name" is missing or invalid",
-    "type": "frontmatter",
-  },
-  {
-    "location": "frontmatter",
-    "message": "Required field "description" is missing or invalid",
-    "type": "frontmatter",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Reference "{{sections.intro}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
     "location": "content",
-    "message": "Injected variable 'sections.intro' is not defined in frontmatter",
+    "message": "Partial '{{partials.intro}}' is not defined in frontmatter",
     "type": "injection",
   },
 ]
@@ -473,13 +255,11 @@ exports[`MarkdownDI - Core Integration Tests Error Handling handles empty frontm
 
 exports[`MarkdownDI - Core Integration Tests Complex Scenarios processes document with all features combined 1`] = `
 "---
-name: "complete-example"
-description: "Complete example with all features"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
-    intro: "sections/intro.md"
-references:
+name: complete-example
+description: Complete example with all features
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
   guides:
     - guides/getting-started.md
     - guides/advanced.md
@@ -532,30 +312,25 @@ exports[`MarkdownDI - Core Integration Tests Complex Scenarios processes documen
 
 exports[`MarkdownDI - Core Integration Tests Complex Scenarios processes document with all features combined 4`] = `
 {
-  "blueprints": {
-    "sections": {
-      "conclusion": "sections/conclusion.md",
-      "intro": "sections/intro.md",
-    },
-  },
   "description": "Complete example with all features",
   "name": "complete-example",
-  "references": {
+  "partials": {
+    "conclusion": "sections/conclusion.md",
     "guides": [
       "guides/getting-started.md",
       "guides/advanced.md",
     ],
+    "intro": "sections/intro.md",
   },
 }
 `;
 
 exports[`MarkdownDI - Core Integration Tests Complex Scenarios preserves formatting and whitespace 1`] = `
 "---
-name: "formatting-test"
-description: "Test formatting preservation"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
+name: formatting-test
+description: Test formatting preservation
+partials:
+  intro: sections/intro.md
 ---
 
 # Document

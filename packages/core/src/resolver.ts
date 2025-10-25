@@ -1,6 +1,6 @@
-import { globSync } from 'fast-glob';
-import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
+import { globSync, isDynamicPattern } from 'fast-glob';
+import { existsSync } from 'fs';
+import { join, normalize, relative } from 'path';
 import type { FrontmatterData, DependencyReference, ProcessingContext, ValidationError } from './types';
 
 /**
@@ -9,50 +9,116 @@ import type { FrontmatterData, DependencyReference, ProcessingContext, Validatio
 export class DependencyResolver {
   constructor(private context: ProcessingContext) {}
 
+  /**
+   * Resolve a file path relative to baseDir
+   */
+  resolveFilePath(baseDir: string, filePath: string): string {
+    return join(baseDir, filePath);
+  }
+
+  /**
+   * Resolve a glob pattern to array of file paths
+   */
+  resolveGlobPattern(baseDir: string, pattern: string): string[] {
+    const globPattern = join(baseDir, pattern);
+    const matchedFiles = globSync(globPattern, {
+      absolute: true,
+      onlyFiles: true,
+      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**']
+    });
+    return matchedFiles.sort();
+  }
+
+  /**
+   * Validates that a path doesn't escape the base directory
+   */
+  private validatePathSafety(path: string, key: string): ValidationError | null {
+    // Check for path traversal patterns
+    if (path.startsWith('../') || path.startsWith('..\\')) {
+      return {
+        type: 'file' as const,
+        message: `Path traversal not allowed: "${path}" starts with ../`,
+        location: `partials.${key}`
+      };
+    }
+
+    // Check if path contains .. segments that could escape
+    if (path.includes('/../') || path.includes('\\..\\')) {
+      return {
+        type: 'file' as const,
+        message: `Path traversal not allowed: "${path}" contains ../`,
+        location: `partials.${key}`
+      };
+    }
+
+    // Verify the normalized path stays within baseDir
+    const fullPath = normalize(join(this.context.baseDir, path));
+    const relativePath = relative(this.context.baseDir, fullPath);
+
+    if (relativePath.startsWith('..') || relativePath.startsWith('/')) {
+      return {
+        type: 'file' as const,
+        message: `Path traversal not allowed: "${path}" escapes base directory`,
+        location: `partials.${key}`
+      };
+    }
+
+    return null;
+  }
+
   resolve(frontmatter: FrontmatterData): { dependencies: string[]; errors: ValidationError[] } {
     const dependencies: string[] = [];
     const errors: ValidationError[] = [];
 
-    // Resolve blueprints
-    if (frontmatter.blueprints) {
-      for (const [groupName, group] of Object.entries(frontmatter.blueprints)) {
-        for (const [key, path] of Object.entries(group)) {
-          const resolved = this.resolveBlueprintPath(groupName, key, path);
-          if (resolved.error) {
-            errors.push(resolved.error);
+    // Resolve partials (supports both single files and glob patterns)
+    if (frontmatter.partials) {
+      for (const [key, value] of Object.entries(frontmatter.partials)) {
+        const patterns = Array.isArray(value) ? value : [value];
+
+        for (const pattern of patterns) {
+          // Check if it's a glob pattern using fast-glob's helper
+          if (isDynamicPattern(pattern)) {
+            // Treat as glob pattern
+            const resolved = this.resolvePartialPatterns(key, pattern);
+            if (resolved.error) {
+              errors.push(resolved.error);
+            } else {
+              dependencies.push(...resolved.paths);
+            }
           } else {
-            dependencies.push(resolved.path);
+            // Treat as single file path
+            const resolved = this.resolvePartialPath(key, pattern);
+            if (resolved.error) {
+              errors.push(resolved.error);
+            } else {
+              dependencies.push(resolved.path);
+            }
           }
         }
-      }
-    }
-
-    // Resolve references (with glob support)
-    if (frontmatter.references) {
-      for (const [groupName, patterns] of Object.entries(frontmatter.references)) {
-        patterns.forEach(pattern => {
-          const resolved = this.resolveReferencePatterns(groupName, pattern);
-          if (resolved.error) {
-            errors.push(resolved.error);
-          } else {
-            dependencies.push(...resolved.paths);
-          }
-        });
       }
     }
 
     return { dependencies, errors };
   }
 
-  private resolveBlueprintPath(group: string, key: string, path: string) {
+  private resolvePartialPath(key: string, path: string) {
+    // First validate path safety
+    const safetyError = this.validatePathSafety(path, key);
+    if (safetyError) {
+      return {
+        error: safetyError,
+        path: ''
+      };
+    }
+
     const fullPath = join(this.context.baseDir, path);
 
     if (!existsSync(fullPath)) {
       return {
         error: {
           type: 'file' as const,
-          message: `Blueprint file not found: ${path}`,
-          location: `blueprints.${group}.${key}`
+          message: `Partial file not found: ${path}`,
+          location: `partials.${key}`
         },
         path: ''
       };
@@ -61,9 +127,17 @@ export class DependencyResolver {
     return { path: fullPath };
   }
 
-  private resolveReferencePatterns(group: string, pattern: string) {
-    const errors: ValidationError[] = [];
+  private resolvePartialPatterns(key: string, pattern: string) {
     const paths: string[] = [];
+
+    // First validate path safety
+    const safetyError = this.validatePathSafety(pattern, key);
+    if (safetyError) {
+      return {
+        error: safetyError,
+        paths: []
+      };
+    }
 
     try {
       const globPattern = join(this.context.baseDir, pattern);
@@ -78,7 +152,7 @@ export class DependencyResolver {
           error: {
             type: 'file' as const,
             message: `No files found matching pattern: ${pattern}`,
-            location: `references.${group}`
+            location: `partials.${key}`
           },
           paths: []
         };
@@ -94,7 +168,7 @@ export class DependencyResolver {
         error: {
           type: 'file' as const,
           message: `Invalid glob pattern "${pattern}": ${error}`,
-          location: `references.${group}`
+          location: `partials.${key}`
         },
         paths: []
       };
@@ -102,18 +176,18 @@ export class DependencyResolver {
   }
 
   /**
-   * Extract references from content and resolve them to file paths
+   * Extract partial references from content and resolve them to file paths
    */
   extractReferences(content: string, frontmatter: FrontmatterData): DependencyReference[] {
     const references: DependencyReference[] = [];
     const lines = content.split('\n');
-    const referencePattern = /\{\{([^}]+)\}\}/g;
+    const partialPattern = /\{\{([^}]+)\}\}/g;
 
     lines.forEach((line, lineIndex) => {
       let match;
-      while ((match = referencePattern.exec(line)) !== null) {
-        const reference = match[1].trim();
-        const resolved = this.resolveReferenceToPath(reference, frontmatter, lineIndex + 1, match.index);
+      while ((match = partialPattern.exec(line)) !== null) {
+        const key = match[1].trim();
+        const resolved = this.resolvePartialReference(key, frontmatter, lineIndex + 1, match.index);
 
         if (resolved) {
           references.push(resolved);
@@ -124,85 +198,56 @@ export class DependencyResolver {
     return references;
   }
 
-  private resolveReferenceToPath(
-    reference: string,
+  private resolvePartialReference(
+    key: string,
     frontmatter: FrontmatterData,
     line: number,
     column: number
   ): DependencyReference | null {
-    const parts = reference.split('.');
-
-    if (parts.length === 1) {
-      // Single part - check if it's a blueprint group
-      if (frontmatter.blueprints && frontmatter.blueprints[reference]) {
-        return {
-          type: 'blueprint',
-          group: reference,
-          fullPath: this.resolveBlueprintGroup(reference, frontmatter.blueprints[reference]),
-          sourceLine: line,
-          sourceColumn: column
-        };
-      }
+    // Check if key is in format "partials.actualKey"
+    let partialKey = key;
+    if (key.startsWith('partials.')) {
+      partialKey = key.substring('partials.'.length);
+    } else {
+      // If not using partials. prefix, this is not a partial reference
+      // Could be a regular Mustache variable
       return null;
     }
 
-    if (parts.length === 2) {
-      const [section, group] = parts;
-
-      if (section === 'references') {
-        // references.group - return all files in group
-        if (frontmatter.references && frontmatter.references[group]) {
-          const files = frontmatter.references[group].map(f => join(this.context.baseDir, f));
-          return {
-            type: 'reference',
-            group,
-            fullPath: files.join('\n'),
-            sourceLine: line,
-            sourceColumn: column
-          };
-        }
-      } else {
-        // group.key - assume blueprint
-        if (frontmatter.blueprints && frontmatter.blueprints[section]) {
-          const blueprintGroup = frontmatter.blueprints[section];
-          if (blueprintGroup[group]) {
-            return {
-              type: 'blueprint',
-              group: section,
-              key: group,
-              fullPath: join(this.context.baseDir, blueprintGroup[group]),
-              sourceLine: line,
-              sourceColumn: column
-            };
-          }
-        }
-      }
+    if (!frontmatter.partials || !frontmatter.partials[partialKey]) {
+      return null;
     }
 
-    if (parts.length === 3) {
-      const [section, group, key] = parts;
+    const value = frontmatter.partials[partialKey];
+    const paths: string[] = [];
 
-      if (section === 'blueprints') {
-        if (frontmatter.blueprints && frontmatter.blueprints[group] && frontmatter.blueprints[group][key]) {
-          return {
-            type: 'blueprint',
-            group,
-            key,
-            fullPath: join(this.context.baseDir, frontmatter.blueprints[group][key]),
-            sourceLine: line,
-            sourceColumn: column
-          };
-        }
+    if (typeof value === 'string') {
+      // Single file path
+      const resolved = this.resolvePartialPath(partialKey, value);
+      if (!resolved.error) {
+        paths.push(resolved.path);
       }
+    } else if (Array.isArray(value)) {
+      // Array of paths or glob patterns
+      value.forEach(pattern => {
+        const resolved = this.resolvePartialPatterns(partialKey, pattern);
+        if (!resolved.error) {
+          paths.push(...resolved.paths);
+        }
+      });
     }
 
-    return null;
-  }
+    if (paths.length === 0) {
+      return null;
+    }
 
-  private resolveBlueprintGroup(groupName: string, group: Record<string, string>): string {
-    return Object.values(group)
-      .map(path => readFileSync(join(this.context.baseDir, path), 'utf-8'))
-      .join('\n\n');
+    return {
+      type: 'partial',
+      key,
+      fullPath: paths.join('\n'),
+      sourceLine: line,
+      sourceColumn: column
+    };
   }
 }
 
@@ -222,7 +267,7 @@ export class CircularDependencyDetector {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
 
-    for (const [file, deps] of this.dependencyGraph) {
+    for (const [file] of this.dependencyGraph) {
       if (this.hasCycle(file, visited, recursionStack)) {
         const cycle = this.findCycle(file);
         if (cycle.length > 0) {

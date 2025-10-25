@@ -1,20 +1,16 @@
 import matter from 'gray-matter';
 import type { ProcessOptions, ProcessResult, ProcessingContext, ValidationError } from './types';
-import { FrontmatterValidator } from './validator';
-import { ReferenceValidator, ReferenceExistenceValidator } from './validator';
+import { PartialValidator } from './validator';
 import { DependencyResolver, CircularDependencyDetector } from './resolver';
 import { ContentProcessor, FrontmatterProcessor } from './processor';
-import { SchemaValidator, parseYamlSchema, validateInlineSchema } from './schema';
+import { SchemaValidator } from './schema';
 import { z } from 'zod';
-import * as yaml from 'yaml';
 
 /**
  * Main class for markdown dependency injection
  */
 export class MarkdownDI {
-  private frontmatterValidator = new FrontmatterValidator();
-  private referenceValidator = new ReferenceValidator();
-  private referenceExistenceValidator = new ReferenceExistenceValidator();
+  private partialValidator = new PartialValidator();
   private frontmatterProcessor = new FrontmatterProcessor();
   private schemaRegistry = new Map<string, z.ZodSchema<any>>();
 
@@ -52,82 +48,44 @@ export class MarkdownDI {
       currentFile: options.currentFile
     };
 
-    // Register any schemas from options
-    if (options.schemas) {
-      this.registerSchemas(options.schemas);
-    }
-
     // Extract and validate frontmatter
     let { frontmatter, body, errors: frontmatterErrors } = this.frontmatterProcessor.extract(options.content);
 
     // Combine all errors
     const allErrors: ProcessResult['errors'] = [...frontmatterErrors];
 
-    // Validate frontmatter structure
-    const frontmatterValidationErrors = this.frontmatterValidator.validate(frontmatter);
-    allErrors.push(...frontmatterValidationErrors);
-
-    // Handle schema prop in frontmatter
+    // Validate against schema if specified in frontmatter
     let validationSchema: z.ZodSchema<any> | null = null;
 
-    if (frontmatter.schema) {
-      if (typeof frontmatter.schema === 'string') {
-        // Reference to registered schema
-        const registeredSchema = this.getSchema(frontmatter.schema);
-        if (registeredSchema) {
-          validationSchema = registeredSchema;
+    if (frontmatter.schema && typeof frontmatter.schema === 'string') {
+      const registeredSchema = this.getSchema(frontmatter.schema);
+
+      if (!registeredSchema) {
+        allErrors.push({
+          type: 'schema',
+          message: `Schema "${frontmatter.schema}" not found in registry. Register it with registerSchema() first.`,
+          location: 'frontmatter.schema'
+        });
+      } else {
+        const schemaValidator = new SchemaValidator({
+          schema: registeredSchema,
+          extend: true
+        });
+        const schemaResult = schemaValidator.validate(frontmatter);
+
+        if (!schemaResult.valid) {
+          allErrors.push(...schemaResult.errors);
         } else {
-          allErrors.push({
-            type: 'schema',
-            message: `Referenced schema '${frontmatter.schema}' is not registered`,
-            location: 'schema'
-          });
-        }
-      } else if (typeof frontmatter.schema === 'object') {
-        // Inline schema definition
-        try {
-          validationSchema = parseYamlSchema(yaml.stringify(frontmatter.schema));
-        } catch (error) {
-          allErrors.push({
-            type: 'schema',
-            message: `Invalid inline schema: ${error instanceof Error ? error.message : String(error)}`,
-            location: 'schema'
-          });
+          // Update frontmatter with validated/transformed data
+          frontmatter = schemaResult.data;
+          validationSchema = registeredSchema;
         }
       }
     }
 
-    // Validate against schema if provided (from frontmatter or options)
-    if (validationSchema) {
-      const schemaValidator = new SchemaValidator({ schema: validationSchema });
-      const schemaResult = schemaValidator.validate(frontmatter);
-
-      if (!schemaResult.valid) {
-        allErrors.push(...schemaResult.errors);
-      } else {
-        // Update frontmatter with validated/transformed data
-        frontmatter = schemaResult.data;
-      }
-    } else if (options.schema) {
-      // Fallback to CLI-provided schema
-      const schemaValidator = new SchemaValidator(options.schema);
-      const schemaResult = schemaValidator.validate(frontmatter);
-
-      if (!schemaResult.valid) {
-        allErrors.push(...schemaResult.errors);
-      } else {
-        // Update frontmatter with validated/transformed data
-        frontmatter = schemaResult.data;
-      }
-    }
-
-    // Validate reference syntax in content
-    const syntaxValidationErrors = this.referenceValidator.validate(body);
+    // Validate partial syntax in content
+    const syntaxValidationErrors = this.partialValidator.validate(body);
     allErrors.push(...syntaxValidationErrors);
-
-    // Validate that references exist in frontmatter
-    const existenceValidationErrors = this.referenceExistenceValidator.validate(body, frontmatter);
-    allErrors.push(...existenceValidationErrors);
 
     // Validate that injected variables are defined in frontmatter and schema
     const injectionValidationErrors = this.validateInjectionVariables(body, frontmatter, validationSchema || undefined);
@@ -137,28 +95,14 @@ export class MarkdownDI {
     const resolver = new DependencyResolver(context);
     const circularDetector = new CircularDependencyDetector();
 
-    // Resolve dependencies and check for circular references
-    const { dependencies, errors: resolutionErrors } = resolver.resolve(frontmatter);
-    allErrors.push(...resolutionErrors);
-
-    // Detect circular dependencies
-    if (context.currentFile) {
-      const circularErrors = circularDetector.detect(context.currentFile, dependencies);
-      allErrors.push(...circularErrors);
-    }
-
-    // Process content if no errors or in build mode
-    let processedContent = body;
-    if (allErrors.length === 0 || context.mode === 'build') {
-      const processor = new ContentProcessor(resolver, circularDetector);
-      const { processedContent: finalContent, errors: processingErrors } = await processor.process(
-        body,
-        frontmatter,
-        context
-      );
-      processedContent = finalContent;
-      allErrors.push(...processingErrors);
-    }
+    // Process content
+    const processor = new ContentProcessor(resolver, circularDetector);
+    const { processedContent, errors: processingErrors, dependencies } = await processor.process(
+      body,
+      frontmatter,
+      context
+    );
+    allErrors.push(...processingErrors);
 
     // Reassemble the document with processed frontmatter
     let finalContent;
@@ -182,13 +126,14 @@ export class MarkdownDI {
   }
 
   /**
-   * Validate that injected variables are defined in frontmatter
+   * Validate that partials exist in frontmatter
+   * Mustache will handle variable validation naturally during rendering
    */
   private validateInjectionVariables(body: string, frontmatter: any, validationSchema?: z.ZodSchema<any>): ValidationError[] {
     const errors: ValidationError[] = [];
 
-    // Extract all references from content
-    const referenceRegex = /\{\{([^}]+)\}\}/g;
+    // Extract all {{partials.xxx}} references and validate they exist
+    const referenceRegex = /\{\{partials\.([^}]+)\}\}/g;
     const matches: string[] = [];
     let match;
 
@@ -196,30 +141,12 @@ export class MarkdownDI {
       matches.push(match[1].trim());
     }
 
-    // Get all available variables from frontmatter
-    const availableVariables = new Set<string>();
-
-    // Add standard frontmatter fields
-    Object.keys(frontmatter).forEach(key => {
-      availableVariables.add(key);
-    });
-
-    // Add reference variables (references.group)
-    if (frontmatter.references) {
-      Object.entries(frontmatter.references).forEach(([group]) => {
-        availableVariables.add(group);
-      });
-    }
-
-    // Check each reference
-    matches.forEach(reference => {
-      const parts = reference.split('.');
-      const root = parts[0];
-
-      if (!availableVariables.has(reference) && !availableVariables.has(root)) {
+    // Check each partial reference
+    matches.forEach(partialKey => {
+      if (!frontmatter.partials || !frontmatter.partials.hasOwnProperty(partialKey)) {
         errors.push({
           type: 'injection',
-          message: `Injected variable '${reference}' is not defined in frontmatter`,
+          message: `Partial '{{partials.${partialKey}}}' is not defined in frontmatter`,
           location: 'content'
         });
       }
@@ -261,86 +188,23 @@ export class MarkdownDI {
    * Reassemble document with frontmatter and processed body
    */
   private reassembleDocument(frontmatter: any, body: string): string {
-    // Convert frontmatter back to YAML
-    const frontmatterYaml = this.stringifyFrontmatter(frontmatter);
+    // Filter frontmatter based on output-frontmatter field if present
+    let outputFrontmatter = frontmatter;
 
-    // Reassemble the document
-    return `---\n${frontmatterYaml}\n---\n${body}`;
-  }
+    if (frontmatter['output-frontmatter'] && Array.isArray(frontmatter['output-frontmatter'])) {
+      const allowedFields = frontmatter['output-frontmatter'];
+      outputFrontmatter = {};
 
-  /**
-   * Convert frontmatter object to YAML string
-   */
-  private stringifyFrontmatter(frontmatter: any): string {
-    const lines: string[] = [];
-
-    // Sort keys for consistent output
-    const sortedKeys = Object.keys(frontmatter).sort((a, b) => {
-      // Required fields first
-      if (a === 'name') return -1;
-      if (b === 'name') return 1;
-      if (a === 'description') return -1;
-      if (b === 'description') return 1;
-      // Then blueprints and references
-      if (a === 'blueprints') return -1;
-      if (b === 'blueprints') return 1;
-      if (a === 'references') return -1;
-      if (b === 'references') return 1;
-      return a.localeCompare(b);
-    });
-
-    for (const key of sortedKeys) {
-      const value = frontmatter[key];
-
-      if (value === undefined || value === null) continue;
-
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        // Handle objects
-        lines.push(`${key}:`);
-        this.stringifyObject(value, lines, 1);
-      } else if (Array.isArray(value)) {
-        // Handle arrays
-        lines.push(`${key}:`);
-        for (const item of value) {
-          if (typeof item === 'string') {
-            lines.push(`  - ${item}`);
-          } else {
-            lines.push(`  - ${JSON.stringify(item)}`);
-          }
+      // Only include fields that are in the output-frontmatter list
+      for (const field of allowedFields) {
+        // Don't include output-frontmatter itself
+        if (field !== 'output-frontmatter' && frontmatter.hasOwnProperty(field)) {
+          outputFrontmatter[field] = frontmatter[field];
         }
-      } else {
-        // Handle primitives
-        const stringValue = typeof value === 'string' ? `"${value.replace(/"/g, '\\"')}"` : value;
-        lines.push(`${key}: ${stringValue}`);
       }
     }
 
-    return lines.join('\n');
-  }
-
-  /**
-   * Recursively stringify nested objects
-   */
-  private stringifyObject(obj: any, lines: string[], indent: number): void {
-    const spaces = '  '.repeat(indent);
-    const sortedKeys = Object.keys(obj).sort();
-
-    for (const key of sortedKeys) {
-      const value = obj[key];
-
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        lines.push(`${spaces}${key}:`);
-        this.stringifyObject(value, lines, indent + 1);
-      } else if (Array.isArray(value)) {
-        lines.push(`${spaces}${key}:`);
-        for (const item of value) {
-          lines.push(`${spaces}  - ${item}`);
-        }
-      } else {
-        const stringValue = typeof value === 'string' ? `"${value.replace(/"/g, '\\"')}"` : value;
-        lines.push(`${spaces}${key}: ${stringValue}`);
-      }
-    }
+    return matter.stringify(body, outputFrontmatter);
   }
 }
 
@@ -349,40 +213,3 @@ export * from './types';
 export * from './validator';
 export * from './resolver';
 export * from './processor';
-
-// Export the main class as default
-/**
- * Schema utilities
- */
-export class MarkdownDISchema {
-  /**
-   * Create a schema validator
-   */
-  static create(schema: z.ZodSchema<any>, options?: {
-    extend?: boolean;
-    strict?: boolean;
-  }): SchemaValidator {
-    return new SchemaValidator({ schema, ...options });
-  }
-
-  /**
-   * Validate a single file with schema
-   */
-  static async validateFile(filePath: string, schema?: any, options?: {
-    extend?: boolean;
-    strict?: boolean;
-  }) {
-    const validator = new SchemaValidator({ schema, ...options });
-    return validator.validateFile(filePath);
-  }
-
-  /**
-   * Generate TypeScript type from schema
-   */
-  static generateType(schema: any, typeName = 'Frontmatter'): string {
-    const validator = new SchemaValidator({ schema });
-    return validator.generateType(schema, typeName);
-  }
-}
-
-export default MarkdownDI;

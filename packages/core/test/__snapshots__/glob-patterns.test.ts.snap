@@ -1,0 +1,134 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Glob Pattern Support should support single glob pattern (no array) 1`] = `[]`;
+
+exports[`Glob Pattern Support should support single glob pattern (no array) 2`] = `
+"---
+title: All Guides
+partials:
+  guides: guides/*.md
+---
+
+# All Guides
+
+## Advanced Topics
+
+This covers advanced usage.
+
+## FAQ
+
+Frequently asked questions.
+
+## Getting Started
+
+This is the getting started guide.
+"
+`;
+
+exports[`Glob Pattern Support should support array of glob patterns 1`] = `[]`;
+
+exports[`Glob Pattern Support should support array of glob patterns 2`] = `
+"---
+title: Documentation
+partials:
+  allDocs:
+    - sections/*.md
+    - guides/*.md
+---
+
+# Documentation
+
+# Introduction
+
+Welcome to the docs.
+
+## Advanced Topics
+
+This covers advanced usage.
+
+## FAQ
+
+Frequently asked questions.
+
+## Getting Started
+
+This is the getting started guide.
+"
+`;
+
+exports[`Glob Pattern Support should support single file path (no glob) 1`] = `[]`;
+
+exports[`Glob Pattern Support should support single file path (no glob) 2`] = `
+"---
+title: Intro Only
+partials:
+  intro: sections/intro.md
+---
+
+# Intro Only
+
+# Introduction
+
+Welcome to the docs.
+"
+`;
+
+exports[`Glob Pattern Support should support mixed single files and globs in array 1`] = `[]`;
+
+exports[`Glob Pattern Support should support mixed single files and globs in array 2`] = `
+"---
+title: Mixed Content
+partials:
+  content:
+    - sections/intro.md
+    - guides/getting-started.md
+    - guides/a*.md
+---
+
+# Mixed Content
+
+# Introduction
+
+Welcome to the docs.
+
+## Getting Started
+
+This is the getting started guide.
+
+## Advanced Topics
+
+This covers advanced usage.
+"
+`;
+
+exports[`Glob Pattern Support should handle multiple partials with different patterns 1`] = `[]`;
+
+exports[`Glob Pattern Support should handle multiple partials with different patterns 2`] = `
+"---
+title: Multiple Partials
+partials:
+  intro: sections/intro.md
+  guides: guides/*.md
+---
+
+# Multiple Partials
+
+# Introduction
+
+Welcome to the docs.
+
+---
+
+## Advanced Topics
+
+This covers advanced usage.
+
+## FAQ
+
+Frequently asked questions.
+
+## Getting Started
+
+This is the getting started guide.
+"
+`;
