@@ -485,8 +485,12 @@ partials:
         baseDir: TEST_DIR,
       })
 
-      expect(result.dependencies).toMatchSnapshot()
-      // Dependencies should include resolved files if they exist
+      // Check dependencies using relative paths to avoid snapshot environment issues
+      expect(result.dependencies.length).toBe(4)
+      expect(result.dependencies.some((dep) => dep.endsWith('sections/intro.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('sections/conclusion.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('guides/advanced.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('guides/getting-started.md'))).toBe(true)
     })
 
     test('includes all resolved files in dependencies', async () => {
@@ -515,11 +519,12 @@ partials:
         baseDir: TEST_DIR,
       })
 
-      expect(result.dependencies).toMatchSnapshot()
-      // Check if dependencies include the expected files
-      const hasIntro = result.dependencies.some((dep) => dep.includes('intro.md'))
-      const hasConclusion = result.dependencies.some((dep) => dep.includes('conclusion.md'))
-      expect(hasIntro || hasConclusion).toBe(true)
+      // Check dependencies using relative paths to avoid snapshot environment issues
+      expect(result.dependencies.length).toBe(4)
+      expect(result.dependencies.some((dep) => dep.endsWith('sections/intro.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('sections/conclusion.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('guides/advanced.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('guides/getting-started.md'))).toBe(true)
     })
   })
 
@@ -714,7 +719,12 @@ Here are some related guides:
 
       expect(result.content).toMatchSnapshot()
       expect(result.errors).toMatchSnapshot()
-      expect(result.dependencies).toMatchSnapshot()
+      // Check dependencies using relative paths to avoid snapshot environment issues
+      expect(result.dependencies.length).toBe(4)
+      expect(result.dependencies.some((dep) => dep.endsWith('sections/intro.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('sections/conclusion.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('guides/advanced.md'))).toBe(true)
+      expect(result.dependencies.some((dep) => dep.endsWith('guides/getting-started.md'))).toBe(true)
       expect(result.frontmatter).toMatchSnapshot()
     })
 

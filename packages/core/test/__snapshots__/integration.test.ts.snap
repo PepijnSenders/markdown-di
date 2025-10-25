@@ -180,24 +180,6 @@ exports[`MarkdownDI - Core Integration Tests Schema Validation catches errors fo
 ]
 `;
 
-exports[`MarkdownDI - Core Integration Tests Dependency Resolution resolves dependencies from frontmatter 1`] = `
-[
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/intro.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/conclusion.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/guides/advanced.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/guides/getting-started.md",
-]
-`;
-
-exports[`MarkdownDI - Core Integration Tests Dependency Resolution includes all resolved files in dependencies 1`] = `
-[
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/intro.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/conclusion.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/guides/getting-started.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/guides/advanced.md",
-]
-`;
-
 exports[`MarkdownDI - Core Integration Tests Error Handling handles missing files gracefully 1`] = `
 [
   {
@@ -292,15 +274,6 @@ This wraps up the document nicely.
 exports[`MarkdownDI - Core Integration Tests Complex Scenarios processes document with all features combined 2`] = `[]`;
 
 exports[`MarkdownDI - Core Integration Tests Complex Scenarios processes document with all features combined 3`] = `
-[
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/intro.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/sections/conclusion.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/guides/getting-started.md",
-  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures/guides/advanced.md",
-]
-`;
-
-exports[`MarkdownDI - Core Integration Tests Complex Scenarios processes document with all features combined 4`] = `
 {
   "description": "Complete example with all features",
   "name": "complete-example",
