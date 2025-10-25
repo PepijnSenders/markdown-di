@@ -192,7 +192,7 @@ export class BatchProcessor {
           // Get output path from callback
           const variantOutputPath = variantConfig.getOutputPath(
             {
-              id: fileId,
+              id: fileId!, // fileId is guaranteed to exist here since variantConfig is only set when fileId exists
               filePath: file,
               frontmatter: variantResult.frontmatter as Record<string, unknown>,
               baseDir,
