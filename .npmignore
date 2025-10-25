@@ -1,0 +1,27 @@
+# Test files
+test/
+*.test.ts
+*.test.js
+__snapshots__/
+test-fixtures/
+test-fixtures-*/
+
+# Source files (only publish dist)
+src/
+
+# Config files
+tsconfig.json
+tsconfig.tsbuildinfo
+.eslintrc*
+.prettierrc*
+
+# CI/CD
+.github/
+.gitignore
+
+# Documentation (keep in packages, ignore in root)
+*.md
+
+# Misc
+.DS_Store
+node_modules/

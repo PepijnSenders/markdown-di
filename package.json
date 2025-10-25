@@ -1,6 +1,6 @@
 {
   "name": "markdown-di",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Type-safe dependency injection for markdown using frontmatter - parser-agnostic core with adapters",
   "private": true,
   "workspaces": [
@@ -10,7 +10,9 @@
     "build": "bun run --filter './packages/*' build",
     "test": "bun test",
     "lint": "eslint packages/**/*.ts",
-    "format": "prettier --write \"packages/**/*.{ts,json,md}\""
+    "format": "prettier --write \"packages/**/*.{ts,json,md}\"",
+    "version": "node scripts/version.js",
+    "release": "node scripts/release.js"
   },
   "keywords": [
     "markdown",

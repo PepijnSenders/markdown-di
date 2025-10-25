@@ -17,6 +17,7 @@ Traditional approaches use template-level substitution which is error-prone and 
 ## Key Features
 
 - ✅ **Type-safe references** - All `{{refs}}` validated against frontmatter declarations
+- ✅ **Schema validation** - Validate frontmatter structure with Zod schemas
 - ✅ **Early validation** - Catch errors at parse time, not resolution time
 - ✅ **Self-documenting** - Frontmatter shows all external dependencies at a glance
 - ✅ **Parser-agnostic core** - Works with any markdown parser
@@ -179,6 +180,17 @@ references:
   group-name:          # e.g., "guides", "examples"
     - path/to/file.md
     - path/with/glob/*.md
+
+# Optional: Schema validation
+schema: schema-name    # Reference to registered schema
+# OR inline schema definition:
+schema:
+  type: object
+  properties:
+    customField:
+      type: string
+  required:
+    - customField
 ---
 
 # Use in body:
@@ -186,10 +198,117 @@ references:
 {{references.group-name}}        # All files in group (concatenated)
 ```
 
+## Schema Validation
+
+Validate frontmatter structure using Zod schemas for type safety and consistency.
+
+### Registering Schemas Programmatically
+
+```typescript
+import { MarkdownDI } from '@markdown-di/core';
+import { z } from 'zod';
+
+const mdi = new MarkdownDI();
+
+// Define a schema for blog posts
+const blogSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  author: z.string(),
+  publishDate: z.string(),
+  tags: z.array(z.string()).optional(),
+});
+
+// Register the schema
+mdi.registerSchema('blog', blogSchema);
+
+// Documents can now reference this schema
+const result = await mdi.process({
+  content: `---
+name: my-blog-post
+description: A great post
+schema: blog
+author: Jane Doe
+publishDate: 2025-01-15
+tags:
+  - typescript
+  - markdown
+---
+
+# My Blog Post
+
+Content here...
+`,
+  baseDir: './docs'
+});
+```
+
+### Using Inline Schemas
+
+```yaml
+---
+name: custom-document
+description: Document with inline schema
+
+# Inline YAML schema definition
+schema:
+  type: object
+  properties:
+    category:
+      type: string
+      enum: [tutorial, guide, reference]
+    difficulty:
+      type: string
+      enum: [beginner, intermediate, advanced]
+  required:
+    - category
+    - difficulty
+
+# Custom validated fields
+category: tutorial
+difficulty: beginner
+---
+```
+
+### CLI Schema Validation
+
+```bash
+# Validate with schema file
+markdown-di validate ./docs --schema ./schema.js
+
+# Build with schema validation
+markdown-di build --input ./docs --output ./dist --schema ./schema.js
+```
+
+### Configuration File with Schemas
+
+Create `markdown-di.config.js`:
+
+```javascript
+import { z } from 'zod';
+
+export default {
+  schemas: {
+    blog: z.object({
+      name: z.string(),
+      description: z.string(),
+      author: z.string(),
+      publishDate: z.string(),
+    }),
+    api: z.object({
+      name: z.string(),
+      description: z.string(),
+      version: z.string(),
+      endpoint: z.string().url(),
+    }),
+  },
+};
+```
+
 ## Reference Syntax
 
 ### Valid Patterns
-- `{{blueprints.group.key}}` - Nested blueprint reference
+- `{{blueprints.group.key}}` - Nested blueprint reference (explicit)
 - `{{group.key}}` - Shorthand (assumes blueprints)
 - `{{references.group}}` - All files in reference group
 - `{{references}}` - All reference groups concatenated

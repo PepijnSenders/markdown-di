@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "awsAuthRefresh": "aws sso login --profile sso-bedrock",
+  "env": {
+    "AWS_PROFILE": "sso-bedrock",
+    "AWS_REGION": "eu-west-1",
+    "CLAUDE_CODE_USE_BEDROCK": "1",
+    "ANTHROPIC_MODEL": "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  }
+}

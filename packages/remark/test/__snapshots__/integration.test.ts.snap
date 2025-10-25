@@ -1,0 +1,383 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`remarkMarkdownDI - Integration Tests Basic Remark Processing processes markdown with dependency injection via remark 1`] = `
+"---
+name: remark-test
+description: Testing remark plugin
+
+blueprints:
+  sections:
+    header: sections/header.md
+---
+
+{{sections.header}}
+
+## Main Content
+
+This is the main content.
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Basic Remark Processing processes document with multiple transclusions 1`] = `
+"---
+name: multi-transclusion
+description: Multiple transclusions test
+
+blueprints:
+  sections:
+    header: sections/header.md
+    footer: sections/footer.md
+  components:
+    callout: components/callout.md
+---
+
+{{sections.header}}
+
+## Content Section
+
+Here's some content with a callout:
+
+{{components.callout}}
+
+More content here.
+
+{{sections.footer}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Basic Remark Processing handles code blocks in transclusions 1`] = `
+"---
+name: code-transclusion
+description: Testing code block transclusion
+
+blueprints:
+  components:
+    example: components/code-example.md
+---
+
+# Code Examples
+
+Here's a code example:
+
+{{components.example}}
+
+That's the example.
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Validation Mode validates without processing in validate mode 1`] = `
+"---
+name: validation-test
+description: Testing validation mode
+
+blueprints:
+  sections:
+    header: sections/header.md
+    nonexistent: sections/does-not-exist.md
+---
+
+{{sections.header}}
+{{sections.nonexistent}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Validation Mode validates without processing in validate mode 2`] = `
+{
+  "markdownDI": {
+    "dependencies": [
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/header.md",
+    ],
+    "errors": [
+      {
+        "location": "blueprints.sections.nonexistent",
+        "message": "Blueprint file not found: sections/does-not-exist.md",
+        "type": "file",
+      },
+    ],
+    "frontmatter": {
+      "blueprints": {
+        "sections": {
+          "header": "sections/header.md",
+          "nonexistent": "sections/does-not-exist.md",
+        },
+      },
+      "description": "Testing validation mode",
+      "name": "validation-test",
+    },
+  },
+}
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Validation Mode collects validation errors in file data 1`] = `
+{
+  "markdownDI": {
+    "dependencies": [],
+    "errors": [
+      {
+        "location": "line 2, column 0",
+        "message": "Reference "{{undefined.reference}}" is not declared in frontmatter",
+        "type": "reference",
+      },
+      {
+        "location": "line 3, column 0",
+        "message": "Reference "{{another.missing}}" is not declared in frontmatter",
+        "type": "reference",
+      },
+    ],
+    "frontmatter": {
+      "description": "Collecting validation errors",
+      "name": "error-collection",
+    },
+  },
+}
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Build Mode processes and replaces references in build mode 1`] = `
+"---
+name: build-mode-test
+description: Testing build mode processing
+
+blueprints:
+  sections:
+    header: sections/header.md
+    footer: sections/footer.md
+---
+
+{{sections.header}}
+
+# Main Section
+
+Content goes here.
+
+{{sections.footer}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Advanced Options respects headingShift option 1`] = `
+"---
+name: heading-shift-test
+description: Testing heading shift
+
+blueprints:
+  sections:
+    header: sections/header.md
+---
+
+# Top Level
+
+{{sections.header}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Advanced Options respects linkRewrite option 1`] = `
+"---
+name: link-rewrite-test
+description: Testing link rewriting
+
+blueprints:
+  sections:
+    header: sections/header.md
+---
+
+# Document
+
+{{sections.header}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests File Metadata stores frontmatter in file data 1`] = `
+{
+  "markdownDI": {
+    "dependencies": [
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/header.md",
+    ],
+    "errors": [],
+    "frontmatter": {
+      "author": "Test Author",
+      "blueprints": {
+        "sections": {
+          "header": "sections/header.md",
+        },
+      },
+      "description": "Testing metadata storage",
+      "name": "metadata-test",
+    },
+  },
+}
+`;
+
+exports[`remarkMarkdownDI - Integration Tests File Metadata stores dependencies in file data 1`] = `
+{
+  "markdownDI": {
+    "dependencies": [
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/header.md",
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/footer.md",
+    ],
+    "errors": [],
+    "frontmatter": {
+      "blueprints": {
+        "sections": {
+          "footer": "sections/footer.md",
+          "header": "sections/header.md",
+        },
+      },
+      "description": "Testing dependency tracking",
+      "name": "dependencies-test",
+    },
+  },
+}
+`;
+
+exports[`remarkMarkdownDI - Integration Tests File Metadata stores errors in file data 1`] = `
+{
+  "markdownDI": {
+    "dependencies": [
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/header.md",
+    ],
+    "errors": [
+      {
+        "location": "line 3, column 0",
+        "message": "Reference "{{sections.undefined}}" is not declared in frontmatter",
+        "type": "reference",
+      },
+    ],
+    "frontmatter": {
+      "blueprints": {
+        "sections": {
+          "header": "sections/header.md",
+        },
+      },
+      "description": "Testing error tracking",
+      "name": "errors-test",
+    },
+  },
+}
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Complex Scenarios processes complex document with nested structures 1`] = `
+"---
+name: complex-document
+description: Complex document with various elements
+
+blueprints:
+  sections:
+    header: sections/header.md
+    footer: sections/footer.md
+  components:
+    callout: components/callout.md
+    code: components/code-example.md
+---
+
+{{sections.header}}
+
+## Introduction
+
+This is a complex document demonstrating various features.
+
+{{components.callout}}
+
+## Code Examples
+
+{{components.code}}
+
+## Conclusion
+
+Thank you for reading.
+
+{{sections.footer}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Complex Scenarios processes complex document with nested structures 2`] = `
+{
+  "markdownDI": {
+    "dependencies": [
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/header.md",
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/sections/footer.md",
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/components/callout.md",
+      "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-remark/components/code-example.md",
+    ],
+    "errors": [],
+    "frontmatter": {
+      "blueprints": {
+        "components": {
+          "callout": "components/callout.md",
+          "code": "components/code-example.md",
+        },
+        "sections": {
+          "footer": "sections/footer.md",
+          "header": "sections/header.md",
+        },
+      },
+      "description": "Complex document with various elements",
+      "name": "complex-document",
+    },
+  },
+}
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Complex Scenarios handles empty documents gracefully 1`] = `
+"---
+name: empty-document
+description: Empty document test
+---
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Complex Scenarios preserves markdown formatting 1`] = `
+"---
+name: formatting-preservation
+description: Testing formatting preservation
+
+blueprints:
+  components:
+    callout: components/callout.md
+---
+
+# Main Title
+
+This is **bold** and this is *italic*.
+
+{{components.callout}}
+
+* List item 1
+* List item 2
+  * Nested item
+* List item 3
+
+1. Numbered list
+2. Second item
+   1. Nested numbered
+3. Third item
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Error Handling handles missing frontmatter 1`] = `
+"# Document Without Frontmatter
+
+{{sections.header}}
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Error Handling handles invalid yaml in frontmatter 1`] = `
+"---
+invalid yaml: : : here
+---
+
+# Content
+"
+`;
+
+exports[`remarkMarkdownDI - Integration Tests Error Handling handles file read errors gracefully 1`] = `
+"---
+name: file-error-test
+description: Testing file read errors
+
+blueprints:
+  sections:
+    missing: sections/does-not-exist.md
+---
+
+{{sections.missing}}
+"
+`;

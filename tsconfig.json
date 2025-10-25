@@ -12,10 +12,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true,
-    "outDir": "./dist",
-    "rootDir": "./",
-    "types": ["bun-types"]
+    "composite": true
   },
-  "exclude": ["node_modules", "dist", "build"]
+  "exclude": ["node_modules", "dist", "build", "packages/**/dist"]
 }

@@ -1,0 +1,11 @@
+# Test files
+test/
+*.test.ts
+__snapshots__/
+
+# Source files
+src/
+
+# Config
+tsconfig.json
+tsconfig.tsbuildinfo
