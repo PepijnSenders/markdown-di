@@ -28,7 +28,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pepijnsenders/markdown-di.git"
+    "url": "https://github.com/markdown-di/markdown-di.git"
   },
   "devDependencies": {
     "@types/bun": "latest",
