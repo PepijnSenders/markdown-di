@@ -168,7 +168,7 @@ export class MarkdownDI {
     const circularDetector = new CircularDependencyDetector();
 
     // Process content
-    const processor = new ContentProcessor(resolver, circularDetector);
+    const processor = new ContentProcessor(resolver, circularDetector, this.frontmatterProcessor);
     const {
       processedContent,
       errors: processingErrors,
