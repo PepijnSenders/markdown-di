@@ -259,18 +259,21 @@ function convertToZodType(key: string, def: any): z.ZodType<any> {
   if (typeof def === 'object' && def !== null) {
     if (def.type) {
       // Object with type specification
-      const baseType = convertToZodType(key, def.type);
+      let result: z.ZodType<any> = convertToZodType(key, def.type);
 
-      // Add validations
-      let result = baseType;
-      if (def.min !== undefined) {
-        if (def.type === 'string') result = result.min(def.min);
-        if (def.type === 'number') result = result.min(def.min);
+      // Add validations based on type
+      if (def.type === 'string') {
+        let stringType = result as z.ZodString;
+        if (def.min !== undefined) stringType = stringType.min(def.min);
+        if (def.max !== undefined) stringType = stringType.max(def.max);
+        result = stringType;
+      } else if (def.type === 'number') {
+        let numberType = result as z.ZodNumber;
+        if (def.min !== undefined) numberType = numberType.min(def.min);
+        if (def.max !== undefined) numberType = numberType.max(def.max);
+        result = numberType;
       }
-      if (def.max !== undefined) {
-        if (def.type === 'string') result = result.max(def.max);
-        if (def.type === 'number') result = result.max(def.max);
-      }
+
       if (def.optional) result = result.optional();
       if (def.default !== undefined) result = result.default(def.default);
       if (def.description) result = result.describe(def.description);
@@ -286,7 +289,7 @@ function convertToZodType(key: string, def: any): z.ZodType<any> {
     if (def.items) {
       // Array type
       const itemType = convertToZodType(`${key}Item`, def.items);
-      let result = z.array(itemType);
+      let result: z.ZodType<any> = z.array(itemType);
       if (def.optional) result = result.optional();
       return result;
     }
@@ -297,14 +300,14 @@ function convertToZodType(key: string, def: any): z.ZodType<any> {
       for (const [nestedKey, nestedValue] of Object.entries(def.properties)) {
         nestedShape[nestedKey] = convertToZodType(`${key}.${nestedKey}`, nestedValue);
       }
-      let result = z.object(nestedShape);
+      let result: z.ZodType<any> = z.object(nestedShape);
       if (def.optional) result = result.optional();
       return result;
     }
 
     if (def.pattern) {
       // String with pattern
-      let result = z.string().regex(new RegExp(def.pattern));
+      let result: z.ZodType<any> = z.string().regex(new RegExp(def.pattern));
       if (def.optional) result = result.optional();
       return result;
     }

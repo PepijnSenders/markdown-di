@@ -223,44 +223,4 @@ export class FrontmatterProcessor {
       return { frontmatter: {}, body: content, errors };
     }
   }
-
-  private parseYaml(yaml: string): any {
-    // Simple YAML parser - in a real implementation, use a proper YAML parser
-    const result: any = {};
-    const lines = yaml.split('\n');
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-
-      const colonIndex = trimmed.indexOf(':');
-      if (colonIndex > 0) {
-        const key = trimmed.substring(0, colonIndex).trim();
-        let value = trimmed.substring(colonIndex + 1).trim();
-
-        // Remove quotes if present
-        if (value.startsWith('"') && value.endsWith('"')) {
-          value = value.slice(1, -1);
-        } else if (value.startsWith("'") && value.endsWith("'")) {
-          value = value.slice(1, -1);
-        }
-
-        // Handle arrays (basic support)
-        if (value.startsWith('- ')) {
-          const arrayLines = [value.substring(2).trim()];
-          // Continue collecting array items
-          let nextLineIndex = lines.indexOf(line) + 1;
-          while (nextLineIndex < lines.length && lines[nextLineIndex].trim().startsWith('- ')) {
-            arrayLines.push(lines[nextLineIndex].trim().substring(2).trim());
-            nextLineIndex++;
-          }
-          result[key] = arrayLines;
-        } else {
-          result[key] = value;
-        }
-      }
-    }
-
-    return result;
-  }
 }
