@@ -213,7 +213,18 @@ exports[`MarkdownDI - Core Integration Tests Error Handling handles malformed fr
   {
     "location": "document start",
     "message": 
-"Failed to extract frontmatter: YAMLException: incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line at line 2, column 19:
+"Failed to extract frontmatter: YAMLParseError: Nested mappings are not allowed in compact mappings at line 2, column 14:
+
+this is not: valid: yaml: at: all
+             ^
+"
+,
+    "type": "frontmatter",
+  },
+  {
+    "location": "document",
+    "message": 
+"Failed to reassemble document: YAMLException: incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line at line 2, column 19:
     this is not: valid: yaml: at: all
                       ^"
 ,

@@ -241,6 +241,7 @@ export class MarkdownDI {
   }
 }
 
+export * from "./batch";
 export * from "./processor";
 export * from "./resolver";
 // Export types and classes

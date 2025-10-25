@@ -73,9 +73,12 @@ export class ContentProcessor {
     }
 
     // Use Mustache to render everything in one pass
+    // Disable HTML escaping since we're working with markdown, not HTML
     let processedContent: string
     try {
-      processedContent = Mustache.render(content, view)
+      processedContent = Mustache.render(content, view, {}, {
+        escape: (text) => text // Don't escape - return text as-is
+      })
     } catch (error) {
       errors.push({
         type: 'injection',
@@ -134,7 +137,15 @@ export class FrontmatterProcessor {
 
     try {
       // Use gray-matter to extract frontmatter
-      const parsed = matter(content)
+      // Configure to avoid HTML entity encoding
+      const parsed = matter(content, {
+        engines: {
+          yaml: (input: string) => {
+            const yaml = require('yaml');
+            return yaml.parse(input);
+          }
+        }
+      })
 
       if (!parsed.data || Object.keys(parsed.data).length === 0) {
         return {
