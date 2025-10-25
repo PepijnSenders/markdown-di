@@ -10,7 +10,7 @@ Frontmatter errors surface too late or never get caught:
 
 ```markdown
 ---
-publishedAt: 2024-13-45  ❌ Invalid date
+publishedAt: 2024-13-45   ❌ Invalid date
 tags: "tutorial"          ❌ Should be array
 authenticated: "yes"      ❌ Should be boolean
 ---
@@ -21,18 +21,15 @@ authenticated: "yes"      ❌ Should be boolean
 **Define schemas once**, validate all documents at build time:
 
 ```typescript
-// markdown-di.config.ts
-import { z } from 'zod';
+import { MarkdownDI, z } from '@markdown-di/core';
 
-export default {
-  schemas: {
-    'blog-post': z.object({
-      author: z.string(),
-      publishedAt: z.string().datetime(),
-      tags: z.array(z.string())
-    })
-  }
-};
+const mdi = new MarkdownDI();
+
+mdi.registerSchema('blog-post', z.object({
+  author: z.string(),
+  publishedAt: z.string().datetime(),
+  tags: z.array(z.string())
+}));
 ```
 
 **Write documents** with validated frontmatter + Mustache templating:
@@ -62,9 +59,15 @@ By {{author}}
 
 **Get build-time errors** with exact locations:
 
-```
-[schema] Invalid datetime string at publishedAt
-[schema] Expected array, received string at tags
+```typescript
+const result = await mdi.process({
+  content: markdownContent,
+  baseDir: './docs'
+});
+
+// Result contains validation errors:
+// [schema] Invalid datetime string at publishedAt
+// [schema] Expected array, received string at tags
 ```
 
 ## Features
@@ -74,35 +77,49 @@ By {{author}}
 - ✅ **File injection** - Include external files with `{{partials.xxx}}`
 - ✅ **Glob patterns** - `guides/*.md` expands to multiple files
 - ✅ **Security** - Path traversal protection, circular dependency detection
+- ✅ **Dynamic injection** - `onBeforeCompile` hook for runtime variable injection
 
 ## Installation
 
 ```bash
-bun add -D @markdown-di/cli        # CLI tool (recommended)
-bun add @markdown-di/core          # Or programmatic API
+npm install @markdown-di/core
 ```
 
 ## Quick Start
 
-```bash
-# Create config with schemas
-cat > markdown-di.config.ts << 'EOF'
-import { z } from 'zod';
-export default {
-  schemas: {
-    'blog-post': z.object({
-      author: z.string(),
-      tags: z.array(z.string())
-    })
+```typescript
+import { MarkdownDI, z } from '@markdown-di/core';
+import { readFileSync, writeFileSync } from 'fs';
+import { glob } from 'glob';
+
+// Initialize and register schemas
+const mdi = new MarkdownDI();
+
+mdi.registerSchema('blog-post', z.object({
+  author: z.string(),
+  publishedAt: z.string().datetime(),
+  tags: z.array(z.string())
+}));
+
+// Process all markdown files
+const files = glob.sync('**/*.md', { ignore: 'node_modules/**' });
+
+for (const file of files) {
+  const content = readFileSync(file, 'utf-8');
+
+  const result = await mdi.process({
+    content,
+    baseDir: './docs',
+    currentFile: file
+  });
+
+  if (result.errors.length > 0) {
+    console.error(`Errors in ${file}:`, result.errors);
+    process.exit(1);
   }
-};
-EOF
 
-# Format and validate all markdown files
-markdown-di
-
-# CI/CD mode (fails on validation errors)
-CHECK=true markdown-di
+  writeFileSync(file, result.content);
+}
 ```
 
 ## Use Cases
@@ -111,11 +128,18 @@ CHECK=true markdown-di
 - **Content workflows** - Enforce consistent frontmatter across teams
 - **AI/Agent systems** - Validate generated markdown at build time
 - **API docs** - Type-safe schemas for endpoints, methods, auth
+- **Static site generators** - Pre-process markdown with type safety
 
 ## Documentation
 
-- [**Core API**](./packages/core) - Programmatic usage, schema registration, validation
-- [**CLI**](./packages/cli) - Configuration, usage, CI/CD integration
+See the [**Core API Documentation**](./packages/core) for:
+- Complete API reference
+- Schema validation
+- Mustache templating
+- File injection (partials)
+- Security features
+- Error handling
+- TypeScript types
 
 ## License
 

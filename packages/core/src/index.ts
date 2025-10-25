@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import { deepMerge, generateFileId } from "./utils";
 import { PartialValidator } from "./validator";
-import type { z } from "zod";
+import { z } from "zod";
 
 /**
  * Main class for markdown dependency injection
@@ -247,3 +247,5 @@ export * from "./resolver";
 export * from "./types";
 export * from "./utils";
 export * from "./validator";
+
+export { z };
