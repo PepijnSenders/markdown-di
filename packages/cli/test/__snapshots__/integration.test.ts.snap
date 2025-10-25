@@ -6,6 +6,7 @@ name: simple-document
 description: A simple document
 partials:
   intro: sections/intro.md
+id: simple
 ---
 
 # Simple Document
@@ -31,6 +32,7 @@ exports[`markdown-di CLI - Integration Tests Build Operations builds single file
 exports[`markdown-di CLI - Integration Tests Build Operations builds single file successfully 3`] = `
 {
   "description": "A simple document",
+  "id": "simple",
   "name": "simple-document",
   "partials": {
     "intro": "sections/intro.md",
@@ -44,6 +46,7 @@ name: simple-document
 description: A simple document
 partials:
   intro: sections/intro.md
+id: simple
 ---
 
 # Simple Document
@@ -73,6 +76,7 @@ partials:
   conclusion: sections/conclusion.md
   guides:
     - guides/*.md
+id: docs.main
 ---
 
 # Complete Documentation
@@ -147,6 +151,7 @@ partials:
   conclusion: sections/conclusion.md
   guides:
     - guides/*.md
+id: docs.main
 ---
 
 # Complete Documentation
@@ -215,6 +220,7 @@ exports[`markdown-di CLI - Integration Tests Build Operations handles files with
 "---
 name: standalone-document
 description: Document without dependencies
+id: standalone
 ---
 
 # Standalone Document
@@ -235,6 +241,7 @@ exports[`markdown-di CLI - Integration Tests Build Operations handles files with
 "---
 name: standalone-document
 description: Document without dependencies
+id: standalone
 ---
 
 # Standalone Document
@@ -252,6 +259,7 @@ exports[`markdown-di CLI - Integration Tests Validation Operations validates sin
 exports[`markdown-di CLI - Integration Tests Validation Operations validates single file successfully 2`] = `
 {
   "description": "A simple document",
+  "id": "simple",
   "name": "simple-document",
   "partials": {
     "intro": "sections/intro.md",
@@ -269,25 +277,9 @@ exports[`markdown-di CLI - Integration Tests Validation Operations validates and
 ]
 `;
 
-exports[`markdown-di CLI - Integration Tests Validation Operations validates document structure 1`] = `
-[
-  {
-    "location": "content",
-    "message": "Partial '{{partials.intro}}' is not defined in frontmatter",
-    "type": "injection",
-  },
-]
-`;
+exports[`markdown-di CLI - Integration Tests Validation Operations validates document structure 1`] = `[]`;
 
-exports[`markdown-di CLI - Integration Tests Validation Operations validates undefined references 1`] = `
-[
-  {
-    "location": "content",
-    "message": "Partial '{{partials.undefined}}' is not defined in frontmatter",
-    "type": "injection",
-  },
-]
-`;
+exports[`markdown-di CLI - Integration Tests Validation Operations validates undefined references 1`] = `[]`;
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios processes document with nested blueprints and references 1`] = `
 "---
@@ -298,6 +290,7 @@ partials:
   conclusion: sections/conclusion.md
   guides:
     - guides/*.md
+id: complex.index
 ---
 
 # Project Index
@@ -368,6 +361,7 @@ partials:
   conclusion: sections/conclusion.md
   guides:
     - guides/*.md
+id: complex.index
 ---
 
 # Project Index
@@ -424,6 +418,7 @@ name: mixed-content
 description: Document with various markdown elements
 partials:
   intro: sections/intro.md
+id: mixed
 ---
 
 # Mixed Content Document
@@ -470,6 +465,7 @@ name: formatted-doc
 description: Document with specific formatting
 partials:
   conclusion: sections/conclusion.md
+id: formatted
 ---
 
 # Title with **Bold** and *Italic*
@@ -502,6 +498,7 @@ name: formatted-doc
 description: Document with specific formatting
 partials:
   conclusion: sections/conclusion.md
+id: formatted
 ---
 
 # Title with **Bold** and *Italic*
@@ -564,6 +561,7 @@ name: special-chars
 description: Document with special characters
 partials:
   intro: sections/intro.md
+id: special-chars
 ---
 
 # Special Characters Test

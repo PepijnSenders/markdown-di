@@ -36,14 +36,14 @@
   },
   "dependencies": {
     "@types/mustache": "4.2.6",
-    "fast-glob": "^3.3.2",
+    "fast-glob": "catalog:",
     "gray-matter": "^4.0.3",
     "mustache": "4.2.0",
-    "yaml": "^2.3.4",
-    "zod": "^3.22.4"
+    "yaml": "^2.7.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.3.3"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
   }
 }

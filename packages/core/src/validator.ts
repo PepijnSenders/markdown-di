@@ -24,10 +24,11 @@ export class PartialValidator {
   private findPartials(text: string): RegExpMatchArray[] {
     const partialPattern = /\{\{([^}]+)\}\}/g
     const matches: RegExpMatchArray[] = []
-    let match
+    let match = partialPattern.exec(text)
 
-    while ((match = partialPattern.exec(text)) !== null) {
+    while (match !== null) {
       matches.push(match)
+      match = partialPattern.exec(text)
     }
 
     return matches

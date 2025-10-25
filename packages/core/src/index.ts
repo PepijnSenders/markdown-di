@@ -1,10 +1,11 @@
 import matter from 'gray-matter'
-import type { z } from 'zod'
 import { ContentProcessor, FrontmatterProcessor } from './processor'
 import { CircularDependencyDetector, DependencyResolver } from './resolver'
 import { SchemaValidator } from './schema'
-import type { ProcessingContext, ProcessOptions, ProcessResult, ValidationError } from './types'
+import type { FrontmatterData, ProcessingContext, ProcessOptions, ProcessResult } from './types'
+import { deepMerge, generateFileId } from './utils'
 import { PartialValidator } from './validator'
+import type { z } from 'zod'
 
 /**
  * Main class for markdown dependency injection
@@ -12,19 +13,19 @@ import { PartialValidator } from './validator'
 export class MarkdownDI {
   private partialValidator = new PartialValidator()
   private frontmatterProcessor = new FrontmatterProcessor()
-  private schemaRegistry = new Map<string, z.ZodSchema<any>>()
+  private schemaRegistry = new Map<string, z.ZodObject<any>>()
 
   /**
    * Register a schema by name
    */
-  registerSchema(name: string, schema: z.ZodSchema<any>): void {
+  registerSchema(name: string, schema: z.ZodObject<any>): void {
     this.schemaRegistry.set(name, schema)
   }
 
   /**
    * Register schemas from configuration object
    */
-  registerSchemas(schemas: Record<string, z.ZodSchema<any>>): void {
+  registerSchemas(schemas: Record<string, z.ZodObject<any>>): void {
     Object.entries(schemas).forEach(([name, schema]) => {
       this.registerSchema(name, schema)
     })
@@ -33,7 +34,7 @@ export class MarkdownDI {
   /**
    * Get a registered schema by name
    */
-  getSchema(name: string): z.ZodSchema<any> | undefined {
+  getSchema(name: string): z.ZodObject<any> | undefined {
     return this.schemaRegistry.get(name)
   }
 
@@ -58,8 +59,32 @@ export class MarkdownDI {
     // Combine all errors
     const allErrors: ProcessResult['errors'] = [...frontmatterErrors]
 
-    // Validate against schema if specified in frontmatter
-    let validationSchema: z.ZodSchema<any> | null = null
+    // Generate and add file ID if currentFile is provided
+    if (options.currentFile) {
+      const fileId = generateFileId(options.currentFile, options.baseDir)
+      frontmatter.id = fileId
+    }
+
+    // Execute onBeforeCompile hook if provided
+    if (options.onBeforeCompile && options.currentFile) {
+      try {
+        const hookResult = await options.onBeforeCompile({
+          id: frontmatter.id || '',
+          filePath: options.currentFile,
+          frontmatter: { ...frontmatter },
+          baseDir: options.baseDir,
+        })
+
+        // Deep merge hook result into frontmatter
+        frontmatter = deepMerge(frontmatter, hookResult) as FrontmatterData
+      } catch (error) {
+        allErrors.push({
+          type: 'schema',
+          message: `Hook execution failed: ${error instanceof Error ? error.message : String(error)}`,
+          location: 'onBeforeCompile',
+        })
+      }
+    }
 
     if (frontmatter.schema && typeof frontmatter.schema === 'string') {
       const registeredSchema = this.getSchema(frontmatter.schema)
@@ -81,8 +106,7 @@ export class MarkdownDI {
           allErrors.push(...schemaResult.errors)
         } else {
           // Update frontmatter with validated/transformed data
-          frontmatter = schemaResult.data
-          validationSchema = registeredSchema
+          frontmatter = schemaResult.data as FrontmatterData
         }
       }
     }
@@ -90,14 +114,6 @@ export class MarkdownDI {
     // Validate partial syntax in content
     const syntaxValidationErrors = this.partialValidator.validate(body)
     allErrors.push(...syntaxValidationErrors)
-
-    // Validate that injected variables are defined in frontmatter and schema
-    const injectionValidationErrors = this.validateInjectionVariables(
-      body,
-      frontmatter,
-      validationSchema || undefined,
-    )
-    allErrors.push(...injectionValidationErrors)
 
     // Initialize resolver and detector
     const resolver = new DependencyResolver(context)
@@ -113,7 +129,7 @@ export class MarkdownDI {
     allErrors.push(...processingErrors)
 
     // Reassemble the document with processed frontmatter
-    let finalContent
+    let finalContent: string
     try {
       finalContent = this.reassembleDocument(frontmatter, processedContent)
     } catch (error) {
@@ -134,62 +150,6 @@ export class MarkdownDI {
   }
 
   /**
-   * Validate that partials exist in frontmatter
-   * Mustache will handle variable validation naturally during rendering
-   */
-  private validateInjectionVariables(
-    body: string,
-    frontmatter: any,
-    validationSchema?: z.ZodSchema<any>,
-  ): ValidationError[] {
-    const errors: ValidationError[] = []
-
-    // Extract all {{partials.xxx}} references and validate they exist
-    const referenceRegex = /\{\{partials\.([^}]+)\}\}/g
-    const matches: string[] = []
-    let match
-
-    while ((match = referenceRegex.exec(body)) !== null) {
-      matches.push(match[1].trim())
-    }
-
-    // Check each partial reference
-    matches.forEach((partialKey) => {
-      if (!frontmatter.partials || !Object.hasOwn(frontmatter.partials, partialKey)) {
-        errors.push({
-          type: 'injection',
-          message: `Partial '{{partials.${partialKey}}}' is not defined in frontmatter`,
-          location: 'content',
-        })
-      }
-    })
-
-    // If there's a validation schema, ensure all required fields are present
-    if (validationSchema) {
-      try {
-        const result = validationSchema.safeParse(frontmatter)
-        if (!result.success) {
-          result.error.errors.forEach((issue: any) => {
-            errors.push({
-              type: 'schema',
-              message: `Schema validation failed: ${issue.message}`,
-              location: issue.path.join('.'),
-            })
-          })
-        }
-      } catch (error) {
-        errors.push({
-          type: 'schema',
-          message: `Schema validation error: ${error instanceof Error ? error.message : String(error)}`,
-          location: 'schema',
-        })
-      }
-    }
-
-    return errors
-  }
-
-  /**
    * Validate markdown content without processing
    */
   async validate(options: Omit<ProcessOptions, 'mode'>): Promise<ProcessResult> {
@@ -199,21 +159,23 @@ export class MarkdownDI {
   /**
    * Reassemble document with frontmatter and processed body
    */
-  private reassembleDocument(frontmatter: any, body: string): string {
+  private reassembleDocument(frontmatter: FrontmatterData, body: string): string {
     // Filter frontmatter based on output-frontmatter field if present
-    let outputFrontmatter = frontmatter
+    let outputFrontmatter: FrontmatterData = frontmatter
 
     if (frontmatter['output-frontmatter'] && Array.isArray(frontmatter['output-frontmatter'])) {
       const allowedFields = frontmatter['output-frontmatter']
-      outputFrontmatter = {}
+      const filtered: Record<string, unknown> = {}
 
       // Only include fields that are in the output-frontmatter list
       for (const field of allowedFields) {
         // Don't include output-frontmatter itself
         if (field !== 'output-frontmatter' && Object.hasOwn(frontmatter, field)) {
-          outputFrontmatter[field] = frontmatter[field]
+          filtered[field] = frontmatter[field]
         }
       }
+
+      outputFrontmatter = filtered as FrontmatterData
     }
 
     return matter.stringify(body, outputFrontmatter)
@@ -224,4 +186,5 @@ export * from './processor'
 export * from './resolver'
 // Export types and classes
 export * from './types'
+export * from './utils'
 export * from './validator'

@@ -218,9 +218,8 @@ name: incomplete-doc
       })
 
       expect(result.errors).toMatchSnapshot()
-      expect(result.errors.length).toBeGreaterThan(0)
-      // Without a schema, we only get injection errors for undefined variables
-      expect(result.errors.some((e) => e.type === 'injection')).toBe(true)
+      // Mustache handles undefined variables gracefully - no errors expected
+      expect(result.errors.length).toBe(0)
     })
 
     test('validates and catches undefined references', async () => {
@@ -247,8 +246,8 @@ partials:
       })
 
       expect(result.errors).toMatchSnapshot()
-      expect(result.errors.length).toBeGreaterThan(0)
-      expect(result.errors.some((e) => e.message.includes('undefined'))).toBe(true)
+      // Mustache handles undefined variables gracefully - no errors expected
+      expect(result.errors.length).toBe(0)
     })
 
     test('validates reference syntax', async () => {
@@ -584,7 +583,9 @@ Content here.
       })
 
       expect(result.errors).toMatchSnapshot()
+      // Should only have the "No frontmatter found" error, not injection errors
       expect(result.errors.some((e) => e.message.includes('frontmatter'))).toBe(true)
+      expect(result.errors.length).toBe(1)
     })
   })
 

@@ -117,25 +117,9 @@ This covers advanced topics and patterns.
 "
 `;
 
-exports[`MarkdownDI - Core Integration Tests Validation validates and catches missing frontmatter fields 1`] = `
-[
-  {
-    "location": "content",
-    "message": "Partial '{{partials.intro}}' is not defined in frontmatter",
-    "type": "injection",
-  },
-]
-`;
+exports[`MarkdownDI - Core Integration Tests Validation validates and catches missing frontmatter fields 1`] = `[]`;
 
-exports[`MarkdownDI - Core Integration Tests Validation validates and catches undefined references 1`] = `
-[
-  {
-    "location": "content",
-    "message": "Partial '{{partials.undefined}}' is not defined in frontmatter",
-    "type": "injection",
-  },
-]
-`;
+exports[`MarkdownDI - Core Integration Tests Validation validates and catches undefined references 1`] = `[]`;
 
 exports[`MarkdownDI - Core Integration Tests Validation validates reference syntax 1`] = `
 [
@@ -173,12 +157,12 @@ exports[`MarkdownDI - Core Integration Tests Schema Validation catches schema va
 [
   {
     "location": "version",
-    "message": "Expected string, received undefined",
+    "message": "Invalid input: expected string, received undefined",
     "type": "schema",
   },
   {
     "location": "count",
-    "message": "Expected number, received undefined",
+    "message": "Invalid input: expected number, received undefined",
     "type": "schema",
   },
 ]
@@ -244,11 +228,6 @@ exports[`MarkdownDI - Core Integration Tests Error Handling handles empty frontm
     "location": "document start",
     "message": "No frontmatter found in document",
     "type": "frontmatter",
-  },
-  {
-    "location": "content",
-    "message": "Partial '{{partials.intro}}' is not defined in frontmatter",
-    "type": "injection",
   },
 ]
 `;

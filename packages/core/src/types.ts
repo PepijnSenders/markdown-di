@@ -5,7 +5,17 @@ export interface ValidationError {
   type: 'frontmatter' | 'partial' | 'file' | 'circular' | 'syntax' | 'schema' | 'injection'
   message: string
   location: string
-  details?: any
+  details?: unknown
+}
+
+/**
+ * Hook context passed to onBeforeCompile callback
+ */
+export interface HookContext {
+  id: string
+  filePath: string
+  frontmatter: Record<string, unknown>
+  baseDir: string
 }
 
 /**
@@ -16,6 +26,9 @@ export interface ProcessOptions {
   baseDir: string
   mode?: 'validate' | 'build'
   currentFile?: string
+  onBeforeCompile?: (
+    context: HookContext,
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>
 }
 
 /**
@@ -32,11 +45,12 @@ export interface ProcessResult {
  * Frontmatter data structure
  */
 export interface FrontmatterData {
+  id?: string
   name: string
   description: string
   partials?: Record<string, string | string[]>
   'output-frontmatter'?: string[]
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**

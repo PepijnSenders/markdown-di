@@ -45,12 +45,12 @@ export class ContentProcessor {
     }
 
     // Create view object from frontmatter
-    const view: any = { ...frontmatter }
+    const view: Record<string, unknown> = { ...frontmatter }
 
     // Resolve partials to their file contents
     // Skip if we already have resolution errors for this partial
     if (frontmatter.partials) {
-      view.partials = {}
+      const partialsMap: Record<string, string> = {}
 
       for (const [key, value] of Object.entries(frontmatter.partials)) {
         // Check if this partial already has an error from resolution phase
@@ -60,14 +60,16 @@ export class ContentProcessor {
 
         if (hasResolutionError) {
           // Set empty string so Mustache doesn't break
-          view.partials[key] = ''
+          partialsMap[key] = ''
           continue
         }
 
         // Only try to resolve content if there was no resolution error
         const fileContent = await this.resolvePartialContent(key, value, context)
-        view.partials[key] = fileContent
+        partialsMap[key] = fileContent
       }
+
+      view.partials = partialsMap
     }
 
     // Use Mustache to render everything in one pass
@@ -123,7 +125,11 @@ export class ContentProcessor {
  * Handles frontmatter extraction and parsing
  */
 export class FrontmatterProcessor {
-  extract(content: string): { frontmatter: any; body: string; errors: ValidationError[] } {
+  extract(content: string): {
+    frontmatter: FrontmatterData
+    body: string
+    errors: ValidationError[]
+  } {
     const errors: ValidationError[] = []
 
     try {
@@ -132,7 +138,7 @@ export class FrontmatterProcessor {
 
       if (!parsed.data || Object.keys(parsed.data).length === 0) {
         return {
-          frontmatter: {},
+          frontmatter: { name: '', description: '' },
           body: content,
           errors: [
             {
@@ -145,7 +151,7 @@ export class FrontmatterProcessor {
       }
 
       return {
-        frontmatter: parsed.data,
+        frontmatter: parsed.data as FrontmatterData,
         body: parsed.content,
         errors,
       }
@@ -155,7 +161,12 @@ export class FrontmatterProcessor {
         message: `Failed to extract frontmatter: ${error}`,
         location: 'document start',
       })
-      return { frontmatter: {}, body: content, errors }
+
+      return {
+        frontmatter: { name: '', description: '' },
+        body: content,
+        errors,
+      }
     }
   }
 }

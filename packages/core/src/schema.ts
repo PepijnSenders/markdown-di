@@ -21,7 +21,7 @@ export interface SchemaOptions {
 const defaultFrontmatterSchema = z.object({
   name: z.string().min(1),
   schema: z.string().optional(),
-  partials: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  partials: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
   'output-frontmatter': z.array(z.string()).optional(),
 })
 
@@ -31,7 +31,7 @@ const defaultFrontmatterSchema = z.object({
 export interface SchemaValidationResult {
   valid: boolean
   errors: ValidationError[]
-  data?: any
+  data?: unknown
 }
 
 /**
@@ -60,7 +60,7 @@ export class SchemaValidator {
   /**
    * Validate frontmatter data against schema
    */
-  validate(data: any): SchemaValidationResult {
+  validate(data: unknown): SchemaValidationResult {
     const result = this.schema.safeParse(data)
 
     if (result.success) {
@@ -100,38 +100,8 @@ export class SchemaValidator {
   }
 
   private formatErrorMessage(issue: z.ZodIssue): string {
-    switch (issue.code) {
-      case 'invalid_type':
-        return `Expected ${issue.expected}, received ${issue.received}`
-      case 'invalid_literal':
-        return `Invalid literal value, expected ${issue.expected}`
-      case 'unrecognized_keys':
-        return `Unrecognized key${issue.keys.length > 1 ? 's' : ''}: ${issue.keys.join(', ')}`
-      case 'invalid_union':
-        return `Invalid union - should match at least one of ${issue.unionErrors.map((e) => JSON.stringify(e)).join(', ')}`
-      case 'invalid_enum_value':
-        return `Invalid enum value. Expected ${issue.options.join(', ')}, received ${issue.received}`
-      case 'invalid_arguments':
-        return `Invalid arguments: ${issue.message}`
-      case 'invalid_return_type':
-        return `Invalid return type: ${issue.message}`
-      case 'invalid_date':
-        return `Invalid date: ${issue.message}`
-      case 'invalid_string':
-        return `Invalid string: ${issue.message}`
-      case 'too_small':
-        return `Value too small: ${issue.message}`
-      case 'too_big':
-        return `Value too big: ${issue.message}`
-      case 'invalid_intersection_types':
-        return `Invalid intersection types: ${issue.message}`
-      case 'not_multiple_of':
-        return `Not multiple of ${issue.multipleOf}: ${JSON.stringify((issue as any).received)}`
-      case 'not_finite':
-        return `Value not finite: ${issue.message}`
-      default:
-        return issue.message || 'Schema validation error'
-    }
+    // In Zod v4, the message property is always available and comprehensive
+    return issue.message || 'Schema validation error'
   }
 }
 

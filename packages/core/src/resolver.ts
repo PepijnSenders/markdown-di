@@ -189,14 +189,16 @@ export class DependencyResolver {
     const partialPattern = /\{\{([^}]+)\}\}/g
 
     lines.forEach((line, lineIndex) => {
-      let match
-      while ((match = partialPattern.exec(line)) !== null) {
+      let match = partialPattern.exec(line)
+      while (match !== null) {
         const key = match[1].trim()
         const resolved = this.resolvePartialReference(key, frontmatter, lineIndex + 1, match.index)
 
         if (resolved) {
           references.push(resolved)
         }
+
+        match = partialPattern.exec(line)
       }
     })
 
