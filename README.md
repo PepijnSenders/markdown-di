@@ -1,8 +1,8 @@
 # markdown-di
 
-**Type-safe Mustache templating for markdown with Zod schema validation.**
+**Type-safe Mustache templating for markdown with schema validation.**
 
-Build reliable documentation and content systems with frontmatter schemas that catch errors at build time.
+Build reliable documentation and content systems with frontmatter schemas that catch errors at build time. Use the CLI for quick validation or the programmatic API for advanced workflows.
 
 ## The Problem
 
@@ -74,7 +74,8 @@ docs/getting-started.md:
 
 ## Features
 
-- ✅ **Zod schema validation** - Type-safe frontmatter at build time
+- ✅ **Schema validation** - JSON Schema (CLI) or Zod (programmatic API)
+- ✅ **CLI tool** - Validate and build markdown files from the command line
 - ✅ **Mustache templating** - Variables, loops, conditionals
 - ✅ **File injection** - Include external files with `{{partials.xxx}}`
 - ✅ **Glob patterns** - `guides/*.md` expands to multiple files
@@ -85,13 +86,85 @@ docs/getting-started.md:
 
 ## Installation
 
+### CLI (Recommended for most users)
+
+```bash
+npm install -g @markdown-di/cli
+# or use npx
+npx @markdown-di/cli validate docs/
+```
+
+### Programmatic API
+
 ```bash
 npm install @markdown-di/core
 ```
 
 ## Quick Start
 
-### Batch Processing (Recommended)
+### CLI Usage (Recommended)
+
+The CLI is the easiest way to get started. It uses JSON Schema for validation.
+
+#### 1. Create a config file
+
+Create `.markdown-di.json` in your project root:
+
+```json
+{
+  "schemas": {
+    "blog-post": {
+      "type": "object",
+      "required": ["author", "publishedAt", "tags"],
+      "properties": {
+        "author": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+```
+
+#### 2. Write markdown with frontmatter
+
+```markdown
+---
+schema: blog-post
+name: Getting Started
+author: Jane Doe
+publishedAt: 2024-01-15
+tags: [tutorial, beginners]
+---
+
+# {{name}}
+
+By {{author}}
+```
+
+#### 3. Validate or build
+
+```bash
+# Validate files (no output)
+markdown-di validate docs/
+
+# Build with processed output
+markdown-di build docs/ --output dist/
+
+# Use explicit config path
+markdown-di validate docs/ --config path/to/.markdown-di.json
+```
+
+The CLI will:
+- Auto-discover `.markdown-di.json` by walking up directories
+- Validate all frontmatter against your schemas
+- Report errors with exact locations
+- Process Mustache templates and inject partials
+
+### Programmatic API - Batch Processing
 
 Process multiple markdown files with a simple API:
 
@@ -417,7 +490,75 @@ All nested partials have access to the parent document's variables (`author`, `t
 
 ## Schema Validation
 
-### Registering Custom Schemas
+### JSON Schema (CLI & Programmatic)
+
+JSON Schema is the recommended format for most users. It's a W3C standard that's widely supported and portable.
+
+#### Using with CLI
+
+Create a `.markdown-di.json` config file:
+
+```json
+{
+  "schemas": {
+    "blog-post": {
+      "type": "object",
+      "required": ["author", "date"],
+      "properties": {
+        "author": { "type": "string", "minLength": 1 },
+        "date": { "type": "string", "format": "date" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+```
+
+Then run the CLI:
+
+```bash
+markdown-di validate docs/
+markdown-di build docs/ --output dist/
+```
+
+#### Using Programmatically (JSON Schema)
+
+```typescript
+import { MarkdownDI } from '@markdown-di/core';
+
+const mdi = new MarkdownDI();
+
+// Load schemas from config file (auto-discovery)
+mdi.loadConfigSchemas();
+
+// Or load from explicit path
+mdi.loadConfigSchemas('./my-config.json');
+
+// Or register schemas directly
+mdi.registerJsonSchema('blog-post', {
+  type: 'object',
+  required: ['author', 'date'],
+  properties: {
+    author: { type: 'string' },
+    date: { type: 'string', format: 'date' }
+  }
+});
+
+// Register multiple schemas
+mdi.registerJsonSchemas({
+  'blog-post': { /* schema */ },
+  'api-doc': { /* schema */ }
+});
+```
+
+### Zod Schemas (Programmatic Only)
+
+For TypeScript projects that want strong type inference, you can use Zod schemas programmatically:
+
+#### Registering Zod Schemas
 
 Register schemas once, then reference them in frontmatter:
 
@@ -566,6 +707,115 @@ output-frontmatter:
 - Remove draft/workflow fields from production documents
 - Keep sensitive information in source but not in output
 
+## CLI Reference
+
+The `@markdown-di/cli` package provides command-line tools for validation and building.
+
+### Installation
+
+```bash
+# Global installation
+npm install -g @markdown-di/cli
+
+# Or use with npx
+npx @markdown-di/cli validate docs/
+```
+
+### Commands
+
+#### `validate <input>`
+
+Validate markdown files without writing output. Perfect for CI/CD pipelines.
+
+```bash
+# Validate single file
+markdown-di validate docs/post.md
+
+# Validate directory
+markdown-di validate docs/
+
+# Validate with glob pattern
+markdown-di validate "docs/**/*.md"
+
+# Use explicit config
+markdown-di validate docs/ --config path/to/.markdown-di.json
+```
+
+**Options:**
+- `-c, --config <path>` - Path to config file (overrides auto-discovery)
+
+**Exit codes:**
+- `0` - All files valid
+- `1` - Validation errors found
+
+#### `build <input>`
+
+Build markdown files with dependency injection and optional output directory.
+
+```bash
+# Build single file to output directory
+markdown-di build docs/post.md --output dist/
+
+# Build entire directory
+markdown-di build docs/ --output dist/
+
+# Build in-place (overwrites source files)
+markdown-di build docs/
+
+# Use explicit config
+markdown-di build docs/ --output dist/ --config .markdown-di.json
+```
+
+**Options:**
+- `-o, --output <dir>` - Output directory for processed files
+- `-c, --config <path>` - Path to config file (overrides auto-discovery)
+- `-w, --watch` - Watch mode (not yet implemented)
+
+### Config File
+
+The CLI looks for config files in this order:
+1. Path specified with `--config` flag
+2. `.markdown-di.json` (auto-discovered by walking up directories)
+3. `.markdown-di.schemas.json`
+4. `markdown-di.config.json`
+
+**Config format:**
+
+```json
+{
+  "schemas": {
+    "schema-name": {
+      "type": "object",
+      "required": ["field1"],
+      "properties": {
+        "field1": { "type": "string" },
+        "field2": { "type": "number" }
+      }
+    }
+  }
+}
+```
+
+The config file uses standard [JSON Schema](https://json-schema.org/) format with support for:
+- Type validation (`string`, `number`, `boolean`, `array`, `object`, `null`)
+- Format validation (`date`, `date-time`, `email`, `uri`, `uuid`, etc.)
+- Array items validation
+- Nested objects
+- Required fields
+- Min/max constraints
+
+### CI/CD Integration
+
+Use the validate command in your CI pipeline:
+
+```yaml
+# GitHub Actions example
+- name: Validate markdown
+  run: npx @markdown-di/cli validate docs/
+
+# Will exit with code 1 if validation fails
+```
+
 ## API Reference
 
 ### `BatchProcessor`
@@ -686,20 +936,65 @@ const result = await mdi.validate({
 // Returns errors but doesn't inject partials
 ```
 
-#### `registerSchema(name: string, schema: z.ZodSchema): void`
+#### `loadConfigSchemas(configPath?: string, startDir?: string): void`
 
-Register a named schema:
+Load JSON Schema from config file (recommended for CLI usage):
 
 ```typescript
+// Auto-discover .markdown-di.json
+mdi.loadConfigSchemas();
+
+// Explicit path
+mdi.loadConfigSchemas('./custom-config.json');
+
+// Start search from specific directory
+mdi.loadConfigSchemas(undefined, './docs');
+```
+
+#### `registerJsonSchema(name: string, jsonSchema: any): void`
+
+Register a single JSON Schema:
+
+```typescript
+mdi.registerJsonSchema('blog-post', {
+  type: 'object',
+  required: ['author', 'date'],
+  properties: {
+    author: { type: 'string' },
+    date: { type: 'string', format: 'date' }
+  }
+});
+```
+
+#### `registerJsonSchemas(schemas: Record<string, any>): void`
+
+Register multiple JSON Schemas:
+
+```typescript
+mdi.registerJsonSchemas({
+  'blog-post': { /* JSON Schema */ },
+  'api-doc': { /* JSON Schema */ }
+});
+```
+
+#### `registerSchema(name: string, schema: z.ZodSchema): void`
+
+Register a Zod schema (programmatic API only):
+
+```typescript
+import { z } from '@markdown-di/core';
+
 mdi.registerSchema('blog-post', z.object({
   author: z.string(),
   tags: z.array(z.string())
 }));
 ```
 
+**Note:** Requires Zod as a peer dependency (`npm install zod`).
+
 #### `registerSchemas(schemas: Record<string, z.ZodSchema>): void`
 
-Register multiple schemas:
+Register multiple Zod schemas:
 
 ```typescript
 mdi.registerSchemas({
