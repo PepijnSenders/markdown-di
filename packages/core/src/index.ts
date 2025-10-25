@@ -5,7 +5,7 @@ import { SchemaValidator } from './schema'
 import type { FrontmatterData, ProcessingContext, ProcessOptions, ProcessResult } from './types'
 import { deepMerge, generateFileId } from './utils'
 import { PartialValidator } from './validator'
-import type { z } from 'zod'
+import { z } from 'zod'
 
 /**
  * Main class for markdown dependency injection
@@ -65,6 +65,14 @@ export class MarkdownDI {
       frontmatter.id = fileId
     }
 
+    // Detect fields marked as $dynamic
+    const dynamicFields: string[] = []
+    for (const [key, value] of Object.entries(frontmatter)) {
+      if (value === '$dynamic') {
+        dynamicFields.push(key)
+      }
+    }
+
     // Execute onBeforeCompile hook if provided
     if (options.onBeforeCompile && options.currentFile) {
       try {
@@ -73,7 +81,29 @@ export class MarkdownDI {
           filePath: options.currentFile,
           frontmatter: { ...frontmatter },
           baseDir: options.baseDir,
+          dynamicFields,
         })
+
+        // Validate that all $dynamic fields are provided by hook
+        const missingFields: string[] = []
+        for (const field of dynamicFields) {
+          if (!hookResult || !(field in hookResult)) {
+            missingFields.push(field)
+          }
+        }
+
+        if (missingFields.length > 0) {
+          allErrors.push({
+            type: 'schema',
+            message: `Hook must provide these $dynamic fields: ${missingFields.join(', ')}`,
+            location: 'onBeforeCompile',
+          })
+        }
+
+        // Remove $dynamic placeholders before merging
+        for (const field of dynamicFields) {
+          delete frontmatter[field]
+        }
 
         // Deep merge hook result into frontmatter
         frontmatter = deepMerge(frontmatter, hookResult) as FrontmatterData
@@ -84,6 +114,13 @@ export class MarkdownDI {
           location: 'onBeforeCompile',
         })
       }
+    } else if (dynamicFields.length > 0) {
+      // $dynamic fields declared but no hook provided
+      allErrors.push({
+        type: 'schema',
+        message: `Fields marked as $dynamic but no onBeforeCompile hook configured: ${dynamicFields.join(', ')}`,
+        location: 'frontmatter',
+      })
     }
 
     if (frontmatter.schema && typeof frontmatter.schema === 'string') {

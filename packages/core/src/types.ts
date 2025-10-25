@@ -16,6 +16,7 @@ export interface HookContext {
   filePath: string
   frontmatter: Record<string, unknown>
   baseDir: string
+  dynamicFields: string[]
 }
 
 /**

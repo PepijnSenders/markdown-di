@@ -11,7 +11,7 @@ import {
 import chalk from "chalk";
 import { globSync } from "fast-glob";
 import ora from "ora";
-import type { z } from "zod";
+import { z } from "zod";
 
 export interface MarkdownDIConfig {
   /**
@@ -117,7 +117,8 @@ async function formatMarkdown(config: MarkdownDIConfig) {
 
     // Register schemas if provided
     if (config.schemas) {
-      mdi.registerSchemas(config.schemas);
+      // biome-ignore lint/suspicious/noExplicitAny: Type compatibility with Zod v4
+      mdi.registerSchemas(config.schemas as any);
     }
 
     const results: Array<{

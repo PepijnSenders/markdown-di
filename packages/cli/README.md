@@ -89,8 +89,9 @@ interface MarkdownDIConfig {
 
   /**
    * Hook called before compilation to inject variables into frontmatter
-   * @param context - Hook context with file ID, path, frontmatter, and baseDir
-   * @returns Object to be deep merged into frontmatter
+   * @param context - Hook context with file ID, path, frontmatter, baseDir, and dynamicFields
+   * @param context.dynamicFields - Array of field names marked as $dynamic in frontmatter
+   * @returns Object to be deep merged into frontmatter (must include all $dynamic fields)
    */
   onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
 
@@ -142,7 +143,11 @@ schemas: {
 
 ## Variable Injection with `onBeforeCompile` Hook
 
-Inject dynamic variables into frontmatter before compilation using the `onBeforeCompile` hook. This enables "templates of templates" functionality:
+Inject dynamic variables into frontmatter before compilation using the `onBeforeCompile` hook. This enables "templates of templates" functionality.
+
+### Dynamic Variables with `$dynamic`
+
+Mark fields as `$dynamic` in frontmatter to declare that they **must** be provided by the hook. The build will fail if the hook doesn't provide all declared dynamic fields:
 
 ```typescript
 import type { MarkdownDIConfig } from '@markdown-di/cli';
@@ -165,24 +170,26 @@ export default {
   onBeforeCompile: async (context) => {
     // context.id = "blog.posts.intro" (auto-generated from path)
     // context.filePath = "/path/to/blog/posts/intro.md"
-    // context.frontmatter = { name: "blog-post", title: "..." }
+    // context.dynamicFields = ["author", "publishedAt"] (fields marked as $dynamic)
 
-    // Inject variables based on file ID or other context
+    // MUST provide all dynamic fields or build fails
     return {
-      author: 'Jane Doe',
+      author: await fetchAuthor(context.id),
       publishedAt: new Date().toISOString(),
-      status: 'published'
     };
   }
 } satisfies MarkdownDIConfig;
 ```
 
-**Markdown file:**
+**Markdown file with `$dynamic` fields:**
 ```markdown
 ---
 schema: blog-post
 name: Getting Started
 title: My First Post
+author: $dynamic
+publishedAt: $dynamic
+status: published
 ---
 
 # {{title}}
@@ -193,11 +200,21 @@ Status: {{status}}
 ```
 
 **Key features:**
+- **`$dynamic` declaration**: Explicitly mark fields that need hook injection
+- **Build-time validation**: Fails if hook doesn't provide all `$dynamic` fields
+- **Static override**: Replace `$dynamic` with a real value to skip hook for that field
 - **File ID**: Auto-generated from path (`docs/intro.md` → `docs.intro`)
 - **Execution timing**: Runs before schema validation
 - **Deep merge**: Hook results are deep-merged with existing frontmatter
-- **Validation**: Merged frontmatter is validated against schema
-- **Template access**: All variables available in Mustache templates
+- **Schema validation**: Merged frontmatter is validated against schema after injection
+
+**Error handling:**
+
+If the hook doesn't provide a `$dynamic` field, the build fails:
+```
+✗ Found 1 error in blog/post.md:
+  schema: Hook must provide these $dynamic fields: publishedAt at onBeforeCompile
+```
 
 ## CI/CD Integration
 
