@@ -80,6 +80,7 @@ docs/getting-started.md:
 - ✅ **Glob patterns** - `guides/*.md` expands to multiple files
 - ✅ **Security** - Path traversal protection, circular dependency detection
 - ✅ **Dynamic injection** - `onBeforeCompile` hook for runtime variable injection
+- ✅ **Multi-variant generation** - One template → many output files with different data
 - ✅ **Batch processing** - Process entire directories with one API call
 
 ## Installation
@@ -376,6 +377,55 @@ Built at {{buildTime}}
 Version: {{version}}
 ```
 
+## Multi-Variant Template Generation
+
+Generate multiple output files from a single template with different data for each variant. Perfect for creating product pages, documentation in multiple languages, or any scenario where you need many similar files with different values.
+
+```typescript
+const processor = new BatchProcessor({
+  baseDir: './templates',
+  outDir: './dist',
+  variants: {
+    'product-template': {
+      data: [
+        { product: 'Widget A', price: '$10', sku: 'WA-001' },
+        { product: 'Widget B', price: '$20', sku: 'WB-001' },
+        { product: 'Widget C', price: '$30', sku: 'WC-001' }
+      ],
+      getOutputPath: (context, data, index) => {
+        const slug = data.product.toLowerCase().replace(/\s+/g, '-')
+        return `products/${slug}.md`
+      }
+    }
+  }
+})
+```
+
+**Template file** (`templates/product.md`):
+```markdown
+---
+id: product-template
+name: Product Template
+---
+
+# {{product}}
+
+Price: {{price}}
+SKU: {{sku}}
+```
+
+**Generated output:**
+- `dist/products/widget-a.md`
+- `dist/products/widget-b.md`
+- `dist/products/widget-c.md`
+
+**Key features:**
+- Each variant gets its own output file
+- Custom output path via `getOutputPath` callback
+- Original template is not written (only variants)
+- Works with `onBeforeCompile` for additional dynamic data
+- File-specific variants via `id` field in frontmatter
+
 ## Output Frontmatter Filtering
 
 Control which frontmatter fields appear in the final output:
@@ -421,8 +471,14 @@ interface BatchConfig {
   outDir?: string;               // Output directory (default: in-place updates)
   schemas?: Record<string, z.ZodObject<any>>;  // Schema registry
   onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  variants?: Record<string, VariantGenerator>;  // Multi-variant generation config
   check?: boolean;               // Check mode - don't write files (default: false)
   silent?: boolean;              // Suppress console output (default: false)
+}
+
+interface VariantGenerator {
+  data: Record<string, unknown>[];  // Array of data objects, one per variant
+  getOutputPath: (context: HookContext, data: Record<string, unknown>, index: number) => string;
 }
 ```
 

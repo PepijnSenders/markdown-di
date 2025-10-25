@@ -20,6 +20,30 @@ export interface HookContext {
 }
 
 /**
+ * Variant generator configuration
+ * Generates multiple output files from a single template with different data
+ */
+export interface VariantGenerator {
+  /**
+   * Array of data objects, one per variant to generate
+   */
+  data: Record<string, unknown>[]
+
+  /**
+   * Callback to determine output path for each variant
+   * @param context - Hook context with file information
+   * @param data - The variant data object
+   * @param index - Index of the variant (0-based)
+   * @returns Relative path for the output file
+   */
+  getOutputPath: (
+    context: HookContext,
+    data: Record<string, unknown>,
+    index: number
+  ) => string
+}
+
+/**
  * Processing options
  */
 export interface ProcessOptions {
@@ -30,6 +54,11 @@ export interface ProcessOptions {
   onBeforeCompile?: (
     context: HookContext,
   ) => Promise<Record<string, unknown>> | Record<string, unknown>
+  /**
+   * Variant generators mapped by file ID
+   * Used to generate multiple output files from a single template
+   */
+  variants?: Record<string, VariantGenerator>
 }
 
 /**

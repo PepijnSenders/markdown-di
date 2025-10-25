@@ -19,6 +19,7 @@ export interface SchemaOptions {
  * Default markdown-di frontmatter schema
  */
 const defaultFrontmatterSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1),
   schema: z.string().optional(),
   partials: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),

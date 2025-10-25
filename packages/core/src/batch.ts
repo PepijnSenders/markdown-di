@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { globSync } from "fast-glob";
-import type { ProcessOptions, ValidationError } from "./types";
+import type { ProcessOptions, ValidationError, VariantGenerator } from "./types";
 import { MarkdownDI } from "./index";
 import { z } from "zod";
 
@@ -9,7 +9,7 @@ import { z } from "zod";
  * Batch processing configuration
  * Extends ProcessOptions with batch-specific options
  */
-export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeCompile'> {
+export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeCompile' | 'variants'> {
   /**
    * Glob patterns to match markdown files
    * @default ['**\/*.md']
@@ -92,10 +92,11 @@ export interface BatchResult {
 export class BatchProcessor {
   private mdi: MarkdownDI;
   private config: Required<
-    Omit<BatchConfig, "schemas" | "onBeforeCompile" | "outDir">
+    Omit<BatchConfig, "schemas" | "onBeforeCompile" | "outDir" | "variants">
   > & {
     outDir?: string;
     onBeforeCompile?: BatchConfig["onBeforeCompile"];
+    variants?: BatchConfig["variants"];
   };
 
   constructor(config: BatchConfig) {
@@ -108,6 +109,7 @@ export class BatchProcessor {
       check: config.check || false,
       silent: config.silent || false,
       onBeforeCompile: config.onBeforeCompile,
+      variants: config.variants,
     };
 
     // Register schemas if provided
@@ -120,7 +122,7 @@ export class BatchProcessor {
    * Process all matching markdown files
    */
   async process(): Promise<BatchResult> {
-    const { baseDir, include, exclude, outDir, check, silent } = this.config;
+    const { baseDir, include, exclude, outDir, check, silent, variants } = this.config;
 
     // Find all markdown files
     const files = globSync(include, {
@@ -150,6 +152,7 @@ export class BatchProcessor {
       const content = readFileSync(file, "utf-8");
       const relativePath = relative(baseDir, file);
 
+      // First, do a quick parse to get the frontmatter and check for variants
       const result = await this.mdi.process({
         content,
         baseDir,
@@ -158,30 +161,94 @@ export class BatchProcessor {
         onBeforeCompile: this.config.onBeforeCompile,
       });
 
-      const changed = result.content !== content;
-      if (changed) changedCount++;
-      errorCount += result.errors.length;
+      // Check if this file has variants configured
+      const fileId = result.frontmatter.id as string | undefined;
+      const variantConfig = fileId && variants ? variants[fileId] : undefined;
 
-      results.push({
-        file: relativePath,
-        changed,
-        errors: result.errors,
-      });
+      if (variantConfig) {
+        // This file has variants - process each variant instead of the original
+        for (let i = 0; i < variantConfig.data.length; i++) {
+          const variantData = variantConfig.data[i];
 
-      // Write files only if:
-      // 1. Not in check mode
-      // 2. Content changed
-      // 3. No validation errors
-      if (!check && changed && result.errors.length === 0) {
-        const outputPath = outDir ? join(outDir, relativePath) : file;
+          // Re-process the file with variant data
+          const variantResult = await this.mdi.process({
+            content,
+            baseDir,
+            currentFile: file,
+            mode: "build",
+            onBeforeCompile: async (context) => {
+              // Merge variant data with any onBeforeCompile results
+              const baseData = this.config.onBeforeCompile
+                ? await this.config.onBeforeCompile(context)
+                : {};
+              return { ...baseData, ...variantData };
+            },
+          });
 
-        // Create output directory if needed
-        const outputDir = dirname(outputPath);
-        if (!existsSync(outputDir)) {
-          mkdirSync(outputDir, { recursive: true });
+          const variantChanged = variantResult.content !== content;
+          if (variantChanged) changedCount++;
+          errorCount += variantResult.errors.length;
+
+          // Get output path from callback
+          const variantOutputPath = variantConfig.getOutputPath(
+            {
+              id: fileId,
+              filePath: file,
+              frontmatter: variantResult.frontmatter as Record<string, unknown>,
+              baseDir,
+              dynamicFields: [],
+            },
+            variantData,
+            i
+          );
+
+          results.push({
+            file: variantOutputPath,
+            changed: variantChanged,
+            errors: variantResult.errors,
+          });
+
+          // Write variant file if not in check mode and no errors
+          if (!check && variantChanged && variantResult.errors.length === 0) {
+            const fullOutputPath = outDir
+              ? join(outDir, variantOutputPath)
+              : join(baseDir, variantOutputPath);
+
+            const outputDir = dirname(fullOutputPath);
+            if (!existsSync(outputDir)) {
+              mkdirSync(outputDir, { recursive: true });
+            }
+
+            writeFileSync(fullOutputPath, variantResult.content, "utf-8");
+          }
         }
+      } else {
+        // Normal file processing (no variants)
+        const changed = result.content !== content;
+        if (changed) changedCount++;
+        errorCount += result.errors.length;
 
-        writeFileSync(outputPath, result.content, "utf-8");
+        results.push({
+          file: relativePath,
+          changed,
+          errors: result.errors,
+        });
+
+        // Write files only if:
+        // 1. Not in check mode
+        // 2. Content changed
+        // 3. No validation errors
+        if (!check && changed && result.errors.length === 0) {
+          const outputPath = outDir ? join(outDir, relativePath) : file;
+
+          // Create output directory if needed
+          const outputDir = dirname(outputPath);
+          if (!existsSync(outputDir)) {
+            mkdirSync(outputDir, { recursive: true });
+          }
+
+          writeFileSync(outputPath, result.content, "utf-8");
+        }
       }
     }
 

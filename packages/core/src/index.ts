@@ -64,8 +64,8 @@ export class MarkdownDI {
     // Combine all errors
     const allErrors: ProcessResult["errors"] = [...frontmatterErrors];
 
-    // Generate and add file ID if currentFile is provided
-    if (options.currentFile) {
+    // Generate and add file ID if currentFile is provided and id doesn't exist
+    if (options.currentFile && !frontmatter.id) {
       const fileId = generateFileId(options.currentFile, options.baseDir);
       frontmatter.id = fileId;
     }

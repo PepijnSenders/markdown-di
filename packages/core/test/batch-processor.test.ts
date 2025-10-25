@@ -316,4 +316,319 @@ method: GET
     expect(result.totalFiles).toBe(2)
     expect(result.totalErrors).toBe(0)
   })
+
+  test('generates multiple variants from single template', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'product.md'),
+      `---
+id: product-template
+name: Product Template
+---
+
+# {{product}}
+
+Price: {{price}}
+SKU: {{sku}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      variants: {
+        'product-template': {
+          data: [
+            { product: 'Widget A', price: '$10', sku: 'WA-001' },
+            { product: 'Widget B', price: '$20', sku: 'WB-001' },
+            { product: 'Widget C', price: '$30', sku: 'WC-001' }
+          ],
+          getOutputPath: (_context, data, _index) => {
+            const slug = (data.product as string).toLowerCase().replace(/\s+/g, '-')
+            return `products/${slug}.md`
+          }
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.success).toBe(true)
+    expect(result.changedFiles).toBe(3)
+    expect(result.totalErrors).toBe(0)
+
+    // Verify variant files were created
+    const widgetA = await Bun.file(join(OUT_DIR, 'products', 'widget-a.md')).text()
+    expect(widgetA).toContain('# Widget A')
+    expect(widgetA).toContain('Price: $10')
+    expect(widgetA).toContain('SKU: WA-001')
+
+    const widgetB = await Bun.file(join(OUT_DIR, 'products', 'widget-b.md')).text()
+    expect(widgetB).toContain('# Widget B')
+    expect(widgetB).toContain('Price: $20')
+
+    const widgetC = await Bun.file(join(OUT_DIR, 'products', 'widget-c.md')).text()
+    expect(widgetC).toContain('# Widget C')
+    expect(widgetC).toContain('Price: $30')
+  })
+
+  test('variant getOutputPath receives correct context and index', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'item.md'),
+      `---
+id: item-template
+name: Item
+---
+# {{title}}
+`
+    )
+
+    const capturedContexts: any[] = []
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      variants: {
+        'item-template': {
+          data: [
+            { title: 'First' },
+            { title: 'Second' }
+          ],
+          getOutputPath: (context, data, index) => {
+            capturedContexts.push({ context, data, index })
+            return `item-${index}.md`
+          }
+        }
+      }
+    })
+
+    await processor.process()
+
+    expect(capturedContexts).toHaveLength(2)
+
+    // First variant
+    expect(capturedContexts[0].index).toBe(0)
+    expect(capturedContexts[0].data.title).toBe('First')
+    expect(capturedContexts[0].context.id).toBe('item-template')
+
+    // Second variant
+    expect(capturedContexts[1].index).toBe(1)
+    expect(capturedContexts[1].data.title).toBe('Second')
+    expect(capturedContexts[1].context.id).toBe('item-template')
+  })
+
+  test('mixes regular files and variant files in same batch', async () => {
+    mkdirSync(join(TEST_DIR, 'mixed'), { recursive: true })
+
+    // Regular file
+    writeFileSync(
+      join(TEST_DIR, 'mixed', 'regular.md'),
+      `---
+name: Regular File
+greeting: Hello
+---
+# {{greeting}} {{name}}
+`
+    )
+
+    // Template with variants
+    writeFileSync(
+      join(TEST_DIR, 'mixed', 'template.md'),
+      `---
+id: my-template
+name: Template
+---
+# {{title}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'mixed'),
+      outDir: OUT_DIR,
+      variants: {
+        'my-template': {
+          data: [
+            { title: 'Variant 1' },
+            { title: 'Variant 2' }
+          ],
+          getOutputPath: (_context, _data, index) => `variant-${index}.md`
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.success).toBe(true)
+    expect(result.changedFiles).toBe(3) // 1 regular + 2 variants
+    expect(result.files).toHaveLength(3)
+
+    // Verify regular file
+    const regularContent = await Bun.file(join(OUT_DIR, 'regular.md')).text()
+    expect(regularContent).toContain('# Hello Regular File')
+
+    // Verify variants
+    const variant1 = await Bun.file(join(OUT_DIR, 'variant-0.md')).text()
+    expect(variant1).toContain('# Variant 1')
+
+    const variant2 = await Bun.file(join(OUT_DIR, 'variant-1.md')).text()
+    expect(variant2).toContain('# Variant 2')
+  })
+
+  test('does not write original template file when variants exist', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'source.md'),
+      `---
+id: source-template
+name: Source
+---
+# {{value}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      variants: {
+        'source-template': {
+          data: [{ value: 'Output 1' }],
+          getOutputPath: () => 'output.md'
+        }
+      }
+    })
+
+    await processor.process()
+
+    // Original template should not exist in output
+    const sourceExists = existsSync(join(OUT_DIR, 'source.md'))
+    expect(sourceExists).toBe(false)
+
+    // Only variant should exist
+    const outputExists = existsSync(join(OUT_DIR, 'output.md'))
+    expect(outputExists).toBe(true)
+  })
+
+  test('handles variant processing errors gracefully', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'bad.md'),
+      `---
+id: bad-template
+schema: strict-schema
+name: Bad Template
+---
+# {{title}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      schemas: {
+        'strict-schema': z.object({
+          requiredField: z.string()
+        })
+      },
+      variants: {
+        'bad-template': {
+          data: [{ title: 'Test' }],
+          getOutputPath: () => 'output.md'
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.success).toBe(false)
+    expect(result.totalErrors).toBeGreaterThan(0)
+  })
+
+  test('variants work with onBeforeCompile hook', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'combined.md'),
+      `---
+id: combined-template
+name: Combined
+buildTime: $dynamic
+---
+# {{title}}
+Built at: {{buildTime}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      onBeforeCompile: async () => ({
+        buildTime: '2024-01-15T10:00:00Z'
+      }),
+      variants: {
+        'combined-template': {
+          data: [
+            { title: 'Page A' },
+            { title: 'Page B' }
+          ],
+          getOutputPath: (_ctx, data, _idx) => {
+            const slug = (data.title as string).toLowerCase().replace(/\s+/g, '-')
+            return `${slug}.md`
+          }
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.success).toBe(true)
+
+    const pageA = await Bun.file(join(OUT_DIR, 'page-a.md')).text()
+    expect(pageA).toContain('# Page A')
+    expect(pageA).toContain('Built at: 2024-01-15T10:00:00Z')
+
+    const pageB = await Bun.file(join(OUT_DIR, 'page-b.md')).text()
+    expect(pageB).toContain('# Page B')
+    expect(pageB).toContain('Built at: 2024-01-15T10:00:00Z')
+  })
+
+  test('variants in check mode do not write files', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'check.md'),
+      `---
+id: check-template
+name: Check
+---
+# {{value}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      check: true,
+      variants: {
+        'check-template': {
+          data: [
+            { value: 'Test 1' },
+            { value: 'Test 2' }
+          ],
+          getOutputPath: (_ctx, _data, idx) => `test-${idx}.md`
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.changedFiles).toBe(2)
+
+    // No files should be written in check mode
+    expect(existsSync(OUT_DIR)).toBe(false)
+  })
 })
