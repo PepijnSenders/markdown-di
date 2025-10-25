@@ -25,16 +25,16 @@ export class MarkdownDI {
   private configLoader = new ConfigLoader();
 
   /**
-   * Register a schema by name (Zod - deprecated)
-   * @deprecated Use loadConfigSchemas() with JSON Schema instead
+   * Register a Zod schema by name (programmatic API)
+   * Note: For CLI usage, prefer JSON Schema with loadConfigSchemas()
    */
   registerSchema(name: string, schema: z.ZodObject<any>): void {
     this.schemaRegistry.set(name, schema);
   }
 
   /**
-   * Register schemas from configuration object (Zod - deprecated)
-   * @deprecated Use loadConfigSchemas() with JSON Schema instead
+   * Register multiple Zod schemas (programmatic API)
+   * Note: For CLI usage, prefer JSON Schema with loadConfigSchemas()
    */
   registerSchemas(schemas: Record<string, z.ZodObject<any>>): void {
     Object.entries(schemas).forEach(([name, schema]) => {
@@ -43,8 +43,7 @@ export class MarkdownDI {
   }
 
   /**
-   * Get a registered schema by name (Zod - deprecated)
-   * @deprecated Use AJV schemas instead
+   * Get a registered Zod schema by name
    */
   getSchema(name: string): z.ZodObject<any> | undefined {
     return this.schemaRegistry.get(name);
