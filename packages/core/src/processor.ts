@@ -48,59 +48,100 @@ export class ContentProcessor {
     // Create view object from frontmatter
     const view: Record<string, unknown> = { ...frontmatter }
 
-    // Resolve partials to their file contents
-    // Skip if we already have resolution errors for this partial
-    if (frontmatter.partials) {
-      const partialsMap: Record<string, string> = {}
+    // Process partials using shared logic
+    const { partialsMap, errors: partialProcessingErrors } = await this.processPartials(
+      view,
+      context,
+      resolutionErrors,
+    )
+    view.partials = partialsMap
+    errors.push(...partialProcessingErrors)
 
-      for (const [key, value] of Object.entries(frontmatter.partials)) {
-        // Check if this partial already has an error from resolution phase
-        const hasResolutionError = resolutionErrors.some(
-          (err) => err.location === `partials.${key}`,
-        )
-
-        if (hasResolutionError) {
-          // Set empty string so Mustache doesn't break
-          partialsMap[key] = ''
-          continue
-        }
-
-        // Create context with parent frontmatter for nested partial processing
-        const partialContext: ProcessingContext = {
-          ...context,
-          parentContext: view as Record<string, unknown>,
-        }
-
-        // Only try to resolve content if there was no resolution error
-        const { content: fileContent, errors: partialErrors } = await this.resolvePartialContent(
-          key,
-          value,
-          partialContext,
-        )
-        partialsMap[key] = fileContent
-        errors.push(...partialErrors)
-      }
-
-      view.partials = partialsMap
-    }
-
-    // Use Mustache to render everything in one pass
-    // Disable HTML escaping since we're working with markdown, not HTML
-    let processedContent: string
-    try {
-      processedContent = Mustache.render(content, view, {}, {
-        escape: (text) => text // Don't escape - return text as-is
-      })
-    } catch (error) {
-      errors.push({
-        type: 'injection',
-        message: `Mustache templating error: ${error}`,
-        location: 'content',
-      })
-      processedContent = content
+    // Render content with Mustache using shared logic
+    const { rendered: processedContent, error: renderError } = this.renderWithMustache(
+      content,
+      view,
+      'content',
+    )
+    if (renderError) {
+      errors.push(renderError)
     }
 
     return { processedContent, errors, dependencies }
+  }
+
+  /**
+   * Process partials for a given frontmatter and context
+   * This is shared logic between main document and nested partial processing
+   */
+  private async processPartials(
+    frontmatter: Record<string, unknown>,
+    context: ProcessingContext,
+    resolutionErrors: ValidationError[] = [],
+  ): Promise<{ partialsMap: Record<string, string>; errors: ValidationError[] }> {
+    const partialsMap: Record<string, string> = {}
+    const errors: ValidationError[] = []
+
+    if (!frontmatter.partials) {
+      return { partialsMap, errors }
+    }
+
+    for (const [key, value] of Object.entries(frontmatter.partials)) {
+      // Check if this partial already has an error from resolution phase
+      const hasResolutionError = resolutionErrors.some(
+        (err) => err.location === `partials.${key}`,
+      )
+
+      if (hasResolutionError) {
+        // Set empty string so Mustache doesn't break
+        partialsMap[key] = ''
+        continue
+      }
+
+      // Create context for nested partial processing
+      // Use existing parentContext if available (for nested partials), otherwise use frontmatter
+      const partialContext: ProcessingContext = {
+        ...context,
+        parentContext: context.parentContext !== undefined ? context.parentContext : frontmatter,
+      }
+
+      // Only try to resolve content if there was no resolution error
+      const { content: fileContent, errors: partialErrors } = await this.resolvePartialContent(
+        key,
+        value,
+        partialContext,
+      )
+      partialsMap[key] = fileContent
+      errors.push(...partialErrors)
+    }
+
+    return { partialsMap, errors }
+  }
+
+  /**
+   * Render content with Mustache templating
+   * This is shared logic between main document and partial processing
+   */
+  private renderWithMustache(
+    content: string,
+    context: Record<string, unknown>,
+    location: string = 'content',
+  ): { rendered: string; error?: ValidationError } {
+    try {
+      const rendered = Mustache.render(content, context, {}, {
+        escape: (text) => text // Don't escape - return text as-is
+      })
+      return { rendered }
+    } catch (error) {
+      return {
+        rendered: content,
+        error: {
+          type: 'injection',
+          message: `Mustache templating error: ${error}`,
+          location,
+        },
+      }
+    }
   }
 
   /**
@@ -239,43 +280,27 @@ export class ContentProcessor {
       ...partialFrontmatter,
     }
 
-    // If the partial has its own partials, recursively resolve them
-    if (partialFrontmatter.partials) {
-      const partialsMap: Record<string, string> = {}
-
-      for (const [key, value] of Object.entries(partialFrontmatter.partials)) {
-        // Create nested context with current partial as parent
-        const nestedContext: ProcessingContext = {
-          ...context,
-          parentContext: mergedContext,
-          currentFile: filePath,
-        }
-
-        const { content: partialContent, errors: partialErrors } = await this.resolvePartialContent(
-          key,
-          value as string | string[],
-          nestedContext,
-        )
-        partialsMap[key] = partialContent
-        errors.push(...partialErrors)
-      }
-
-      mergedContext.partials = partialsMap
+    // Process nested partials using shared logic
+    const nestedContext: ProcessingContext = {
+      ...context,
+      parentContext: mergedContext,
+      currentFile: filePath,
     }
+    const { partialsMap, errors: nestedPartialErrors } = await this.processPartials(
+      partialFrontmatter,
+      nestedContext,
+    )
+    mergedContext.partials = partialsMap
+    errors.push(...nestedPartialErrors)
 
-    // Render the partial body with merged context using Mustache
-    let processedContent: string
-    try {
-      processedContent = Mustache.render(body, mergedContext, {}, {
-        escape: (text) => text // Don't escape - return text as-is
-      })
-    } catch (error) {
-      errors.push({
-        type: 'injection',
-        message: `Mustache templating error in partial ${filePath}: ${error}`,
-        location: filePath,
-      })
-      processedContent = body
+    // Render the partial body with merged context using shared logic
+    const { rendered: processedContent, error: renderError } = this.renderWithMustache(
+      body,
+      mergedContext,
+      filePath,
+    )
+    if (renderError) {
+      errors.push(renderError)
     }
 
     // Remove from visited files after processing
