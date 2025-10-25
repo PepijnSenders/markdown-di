@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/remark",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Remark adapter for markdown-di with AST-based transformations",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pepijnsenders/markdown-di.git",
+    "url": "https://github.com/markdown-di/markdown-di.git",
     "directory": "packages/remark"
   },
   "dependencies": {

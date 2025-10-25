@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI tool for markdown-di - build and validate markdown projects",
   "bin": {
     "markdown-di": "./dist/cli.js",
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pepijnsenders/markdown-di.git",
+    "url": "https://github.com/markdown-di/markdown-di.git",
     "directory": "packages/cli"
   },
   "dependencies": {

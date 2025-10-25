@@ -1,6 +1,6 @@
 {
   "name": "markdown-di",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type-safe dependency injection for markdown using frontmatter - parser-agnostic core with adapters",
   "private": true,
   "workspaces": [
