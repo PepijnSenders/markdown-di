@@ -54,6 +54,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI usage documentation
 - Architecture overview
 
+## [0.8.0] - 2025-10-25
+
+### Added
+- **Variable parsing in partials** - Partials can now have their own frontmatter with variable interpolation
+- **Parent variable access** - Partials can access variables from parent document's frontmatter
+- **`$parent` syntax** - Use `$parent` to reference parent variable with same key
+- **`$parent('key')` syntax** - Use `$parent('key')` to map parent variables to different names
+- **Nested partials support** - Partials can include other partials with full context propagation
+- **Circular dependency detection** - Automatic detection and prevention of circular dependencies in nested partials
+- **Backward compatibility** - Partials without frontmatter continue to work as before
+
+### Changed
+- Refactored partial processing to use shared logic with main document processing (DRY principle)
+- Improved error messages for missing parent context references
+
+### Fixed
+- Snapshot tests now use relative paths for better cross-environment compatibility
+
 ## [Unreleased]
 
 ### Planned
@@ -63,4 +81,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VS Code extension
 - Additional parser adapters (marked, markdown-it)
 
+[0.8.0]: https://github.com/pepijnsenders/markdown-di/releases/tag/v0.8.0
 [0.1.0]: https://github.com/pepijnsenders/markdown-di/releases/tag/v0.1.0

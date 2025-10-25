@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/core",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Parser-agnostic dependency injection for markdown using frontmatter",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
