@@ -5,13 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
 ## [0.9.0] - 2025-10-25
 
 ### Changed
 - Add getRegisteredSchemas method ([#2](https://github.com/PepijnSenders/markdown-di/pull/2)) by @PepijnSenders
 
-## [0.1.0] - 2025-01-25
+## [0.8.0] - 2025-10-25
 
 ### Added
 
@@ -78,6 +77,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Snapshot tests now use relative paths for better cross-environment compatibility
 
+## [0.1.0] - 2025-01-25
+
+### Added
+- Parser-agnostic dependency injection system for markdown
+- Frontmatter-based dependency declarations
+- Blueprint references (single file transclusion)
+- Reference groups (multiple files with glob support)
+- Shorthand syntax `{{sections.intro}}` for blueprint references
+- Zod-based schema validation for frontmatter
+- Programmatic schema registration via `registerSchema()`
+- Early validation at parse time
+- Reference syntax validation
+- Frontmatter structure validation
+- Dependency existence checking
+- Circular dependency detection
+- Detailed error reporting with locations
+- Comprehensive integration test suite
+- TypeScript support with full type definitions
+
 ## [Unreleased]
 
 ### Planned
@@ -87,5 +105,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VS Code extension
 - Additional parser adapters (marked, markdown-it)
 
+[0.9.0]: https://github.com/pepijnsenders/markdown-di/releases/tag/v0.9.0
 [0.8.0]: https://github.com/pepijnsenders/markdown-di/releases/tag/v0.8.0
 [0.1.0]: https://github.com/pepijnsenders/markdown-di/releases/tag/v0.1.0
