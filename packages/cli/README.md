@@ -88,6 +88,13 @@ interface MarkdownDIConfig {
   schemas?: Record<string, ZodSchema>;
 
   /**
+   * Hook called before compilation to inject variables into frontmatter
+   * @param context - Hook context with file ID, path, frontmatter, and baseDir
+   * @returns Object to be deep merged into frontmatter
+   */
+  onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
+
+  /**
    * Check mode - exits with error if files would change
    * @default false
    */
@@ -132,6 +139,65 @@ schemas: {
   'blog-post': blogPostSchema   // Validates files with name: blog-post
 }
 ```
+
+## Variable Injection with `onBeforeCompile` Hook
+
+Inject dynamic variables into frontmatter before compilation using the `onBeforeCompile` hook. This enables "templates of templates" functionality:
+
+```typescript
+import type { MarkdownDIConfig } from '@markdown-di/cli';
+import { z } from 'zod';
+
+const blogPostSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  title: z.string(),
+  author: z.string(),
+  publishedAt: z.string().datetime(),
+  status: z.enum(['draft', 'published', 'archived'])
+});
+
+export default {
+  baseDir: './blog',
+  schemas: {
+    'blog-post': blogPostSchema
+  },
+  onBeforeCompile: async (context) => {
+    // context.id = "blog.posts.intro" (auto-generated from path)
+    // context.filePath = "/path/to/blog/posts/intro.md"
+    // context.frontmatter = { name: "blog-post", title: "..." }
+
+    // Inject variables based on file ID or other context
+    return {
+      author: 'Jane Doe',
+      publishedAt: new Date().toISOString(),
+      status: 'published'
+    };
+  }
+} satisfies MarkdownDIConfig;
+```
+
+**Markdown file:**
+```markdown
+---
+schema: blog-post
+name: Getting Started
+title: My First Post
+---
+
+# {{title}}
+
+By {{author}} on {{publishedAt}}
+
+Status: {{status}}
+```
+
+**Key features:**
+- **File ID**: Auto-generated from path (`docs/intro.md` → `docs.intro`)
+- **Execution timing**: Runs before schema validation
+- **Deep merge**: Hook results are deep-merged with existing frontmatter
+- **Validation**: Merged frontmatter is validated against schema
+- **Template access**: All variables available in Mustache templates
 
 ## CI/CD Integration
 
