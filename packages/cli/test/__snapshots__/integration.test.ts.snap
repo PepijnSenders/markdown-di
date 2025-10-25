@@ -2,11 +2,10 @@
 
 exports[`markdown-di CLI - Integration Tests Build Operations builds single file successfully 1`] = `
 "---
-name: "simple-document"
-description: "A simple document"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
+name: simple-document
+description: A simple document
+partials:
+  intro: sections/intro.md
 ---
 
 # Simple Document
@@ -31,23 +30,20 @@ exports[`markdown-di CLI - Integration Tests Build Operations builds single file
 
 exports[`markdown-di CLI - Integration Tests Build Operations builds single file successfully 3`] = `
 {
-  "blueprints": {
-    "sections": {
-      "intro": "sections/intro.md",
-    },
-  },
   "description": "A simple document",
   "name": "simple-document",
+  "partials": {
+    "intro": "sections/intro.md",
+  },
 }
 `;
 
 exports[`markdown-di CLI - Integration Tests Build Operations builds single file successfully 4`] = `
 "---
-name: "simple-document"
-description: "A simple document"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
+name: simple-document
+description: A simple document
+partials:
+  intro: sections/intro.md
 ---
 
 # Simple Document
@@ -70,20 +66,26 @@ Additional content here.
 
 exports[`markdown-di CLI - Integration Tests Build Operations builds complex document with multiple dependencies 1`] = `
 "---
-name: "main-documentation"
-description: "Main documentation file"
-blueprints:
-  sections:
-    conclusion: "../sections/conclusion.md"
-    intro: "../sections/intro.md"
-references:
+name: main-documentation
+description: Main documentation file
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
   guides:
-    - ../guides/*.md
+    - guides/*.md
 ---
 
 # Complete Documentation
 
-{{sections.intro}}
+---
+name: intro-section
+description: Introduction section
+---
+
+# Introduction
+
+Welcome to this documentation. This is a reusable introduction section.
+
 
 ## Core Content
 
@@ -91,65 +93,73 @@ This is the main content of the documentation.
 
 ## Related Guides
 
-{{references.guides}}
+---
+name: advanced-guide
+description: Advanced usage guide
+---
 
-{{sections.conclusion}}
+## Advanced Usage
+
+Here are some advanced patterns and techniques.
+
+
+---
+name: getting-started-guide
+description: Getting started guide
+---
+
+## Getting Started
+
+1. Install the package
+2. Configure your settings
+3. Start using it
+
+
+---
+name: conclusion-section
+description: Conclusion section
+---
+
+# Conclusion
+
+Thank you for reading. This concludes the documentation.
+
 "
 `;
 
-exports[`markdown-di CLI - Integration Tests Build Operations builds complex document with multiple dependencies 2`] = `
+exports[`markdown-di CLI - Integration Tests Build Operations builds complex document with multiple dependencies 2`] = `[]`;
+
+exports[`markdown-di CLI - Integration Tests Build Operations builds complex document with multiple dependencies 3`] = `
 [
-  {
-    "location": "blueprints.sections.intro",
-    "message": "Blueprint file not found: ../sections/intro.md",
-    "type": "file",
-  },
-  {
-    "location": "blueprints.sections.conclusion",
-    "message": "Blueprint file not found: ../sections/conclusion.md",
-    "type": "file",
-  },
-  {
-    "location": "references.guides",
-    "message": "No files found matching pattern: ../guides/*.md",
-    "type": "file",
-  },
-  {
-    "location": "line 14, column 0",
-    "message": "Failed to process reference: Error: Failed to read blueprint file /Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/sections/conclusion.md: Error: ENOENT: no such file or directory, open '/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/sections/conclusion.md'",
-    "type": "file",
-  },
-  {
-    "location": "line 12, column 0",
-    "message": "Failed to process reference: Error: Failed to read reference file /Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/guides/*.md: Error: ENOENT: no such file or directory, open '/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/guides/*.md'",
-    "type": "file",
-  },
-  {
-    "location": "line 4, column 0",
-    "message": "Failed to process reference: Error: Failed to read blueprint file /Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/sections/intro.md: Error: ENOENT: no such file or directory, open '/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/sections/intro.md'",
-    "type": "file",
-  },
+  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/src/sections/intro.md",
+  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/src/sections/conclusion.md",
+  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/src/guides/advanced.md",
+  "/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/src/guides/getting-started.md",
 ]
 `;
 
-exports[`markdown-di CLI - Integration Tests Build Operations builds complex document with multiple dependencies 3`] = `[]`;
-
 exports[`markdown-di CLI - Integration Tests Build Operations builds complex document with multiple dependencies 4`] = `
 "---
-name: "main-documentation"
-description: "Main documentation file"
-blueprints:
-  sections:
-    conclusion: "../sections/conclusion.md"
-    intro: "../sections/intro.md"
-references:
+name: main-documentation
+description: Main documentation file
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
   guides:
-    - ../guides/*.md
+    - guides/*.md
 ---
 
 # Complete Documentation
 
-{{sections.intro}}
+---
+name: intro-section
+description: Introduction section
+---
+
+# Introduction
+
+Welcome to this documentation. This is a reusable introduction section.
+
 
 ## Core Content
 
@@ -157,27 +167,45 @@ This is the main content of the documentation.
 
 ## Related Guides
 
-{{references.guides}}
+---
+name: advanced-guide
+description: Advanced usage guide
+---
 
-{{sections.conclusion}}
+## Advanced Usage
+
+Here are some advanced patterns and techniques.
+
+
+---
+name: getting-started-guide
+description: Getting started guide
+---
+
+## Getting Started
+
+1. Install the package
+2. Configure your settings
+3. Start using it
+
+
+---
+name: conclusion-section
+description: Conclusion section
+---
+
+# Conclusion
+
+Thank you for reading. This concludes the documentation.
+
 "
 `;
 
 exports[`markdown-di CLI - Integration Tests Build Operations reports build errors for invalid files 1`] = `
 [
   {
-    "location": "line 5, column 0",
-    "message": "Reference "{{undefined.reference}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "blueprints.sections.missing",
-    "message": "Blueprint file not found: ../sections/does-not-exist.md",
-    "type": "file",
-  },
-  {
-    "location": "line 4, column 0",
-    "message": "Failed to process reference: Error: Failed to read blueprint file /Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/sections/does-not-exist.md: Error: ENOENT: no such file or directory, open '/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/sections/does-not-exist.md'",
+    "location": "partials.missing",
+    "message": "Partial file not found: sections/does-not-exist.md",
     "type": "file",
   },
 ]
@@ -185,8 +213,8 @@ exports[`markdown-di CLI - Integration Tests Build Operations reports build erro
 
 exports[`markdown-di CLI - Integration Tests Build Operations handles files with no dependencies 1`] = `
 "---
-name: "standalone-document"
-description: "Document without dependencies"
+name: standalone-document
+description: Document without dependencies
 ---
 
 # Standalone Document
@@ -205,8 +233,8 @@ exports[`markdown-di CLI - Integration Tests Build Operations handles files with
 
 exports[`markdown-di CLI - Integration Tests Build Operations handles files with no dependencies 4`] = `
 "---
-name: "standalone-document"
-description: "Document without dependencies"
+name: standalone-document
+description: Document without dependencies
 ---
 
 # Standalone Document
@@ -223,26 +251,19 @@ exports[`markdown-di CLI - Integration Tests Validation Operations validates sin
 
 exports[`markdown-di CLI - Integration Tests Validation Operations validates single file successfully 2`] = `
 {
-  "blueprints": {
-    "sections": {
-      "intro": "sections/intro.md",
-    },
-  },
   "description": "A simple document",
   "name": "simple-document",
+  "partials": {
+    "intro": "sections/intro.md",
+  },
 }
 `;
 
 exports[`markdown-di CLI - Integration Tests Validation Operations validates and reports errors 1`] = `
 [
   {
-    "location": "line 5, column 0",
-    "message": "Reference "{{undefined.reference}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "blueprints.sections.missing",
-    "message": "Blueprint file not found: ../sections/does-not-exist.md",
+    "location": "partials.missing",
+    "message": "Partial file not found: sections/does-not-exist.md",
     "type": "file",
   },
 ]
@@ -251,14 +272,9 @@ exports[`markdown-di CLI - Integration Tests Validation Operations validates and
 exports[`markdown-di CLI - Integration Tests Validation Operations validates document structure 1`] = `
 [
   {
-    "location": "frontmatter",
-    "message": "Required field "description" is missing or invalid",
-    "type": "frontmatter",
-  },
-  {
-    "location": "line 4, column 0",
-    "message": "Reference "{{sections.intro}}" is not declared in frontmatter",
-    "type": "reference",
+    "location": "content",
+    "message": "Partial '{{partials.intro}}' is not defined in frontmatter",
+    "type": "injection",
   },
 ]
 `;
@@ -266,27 +282,20 @@ exports[`markdown-di CLI - Integration Tests Validation Operations validates doc
 exports[`markdown-di CLI - Integration Tests Validation Operations validates undefined references 1`] = `
 [
   {
-    "location": "line 5, column 0",
-    "message": "Reference "{{sections.undefined}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Reference "{{something.random}}" is not declared in frontmatter",
-    "type": "reference",
+    "location": "content",
+    "message": "Partial '{{partials.undefined}}' is not defined in frontmatter",
+    "type": "injection",
   },
 ]
 `;
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios processes document with nested blueprints and references 1`] = `
 "---
-name: "complex-index"
-description: "Complex project index"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
-    intro: "sections/intro.md"
-references:
+name: complex-index
+description: Complex project index
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
   guides:
     - guides/*.md
 ---
@@ -305,7 +314,27 @@ Welcome to this documentation. This is a reusable introduction section.
 
 ## Guides
 
-{{references.guides}}
+---
+name: advanced-guide
+description: Advanced usage guide
+---
+
+## Advanced Usage
+
+Here are some advanced patterns and techniques.
+
+
+---
+name: getting-started-guide
+description: Getting started guide
+---
+
+## Getting Started
+
+1. Install the package
+2. Configure your settings
+3. Start using it
+
 
 ---
 name: conclusion-section
@@ -319,15 +348,7 @@ Thank you for reading. This concludes the documentation.
 "
 `;
 
-exports[`markdown-di CLI - Integration Tests Complex Scenarios processes document with nested blueprints and references 2`] = `
-[
-  {
-    "location": "line 8, column 0",
-    "message": "Failed to process reference: Error: Failed to read reference file /Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/src/guides/*.md: Error: ENOENT: no such file or directory, open '/Users/ps/Documents/GitHub/markdown-di/packages/test-fixtures-cli/src/guides/*.md'",
-    "type": "file",
-  },
-]
-`;
+exports[`markdown-di CLI - Integration Tests Complex Scenarios processes document with nested blueprints and references 2`] = `[]`;
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios processes document with nested blueprints and references 3`] = `
 [
@@ -340,13 +361,11 @@ exports[`markdown-di CLI - Integration Tests Complex Scenarios processes documen
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios processes document with nested blueprints and references 4`] = `
 "---
-name: "complex-index"
-description: "Complex project index"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
-    intro: "sections/intro.md"
-references:
+name: complex-index
+description: Complex project index
+partials:
+  intro: sections/intro.md
+  conclusion: sections/conclusion.md
   guides:
     - guides/*.md
 ---
@@ -365,7 +384,27 @@ Welcome to this documentation. This is a reusable introduction section.
 
 ## Guides
 
-{{references.guides}}
+---
+name: advanced-guide
+description: Advanced usage guide
+---
+
+## Advanced Usage
+
+Here are some advanced patterns and techniques.
+
+
+---
+name: getting-started-guide
+description: Getting started guide
+---
+
+## Getting Started
+
+1. Install the package
+2. Configure your settings
+3. Start using it
+
 
 ---
 name: conclusion-section
@@ -381,11 +420,10 @@ Thank you for reading. This concludes the documentation.
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios handles documents with mixed content types 1`] = `
 "---
-name: "mixed-content"
-description: "Document with various markdown elements"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
+name: mixed-content
+description: Document with various markdown elements
+partials:
+  intro: sections/intro.md
 ---
 
 # Mixed Content Document
@@ -428,11 +466,10 @@ exports[`markdown-di CLI - Integration Tests Complex Scenarios handles documents
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios preserves markdown formatting and structure 1`] = `
 "---
-name: "formatted-doc"
-description: "Document with specific formatting"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
+name: formatted-doc
+description: Document with specific formatting
+partials:
+  conclusion: sections/conclusion.md
 ---
 
 # Title with **Bold** and *Italic*
@@ -461,11 +498,10 @@ Final content.
 
 exports[`markdown-di CLI - Integration Tests Complex Scenarios preserves markdown formatting and structure 2`] = `
 "---
-name: "formatted-doc"
-description: "Document with specific formatting"
-blueprints:
-  sections:
-    conclusion: "sections/conclusion.md"
+name: formatted-doc
+description: Document with specific formatting
+partials:
+  conclusion: sections/conclusion.md
 ---
 
 # Title with **Bold** and *Italic*
@@ -499,24 +535,14 @@ exports[`markdown-di CLI - Integration Tests Edge Cases handles empty frontmatte
     "message": "No frontmatter found in document",
     "type": "frontmatter",
   },
-  {
-    "location": "frontmatter",
-    "message": "Required field "name" is missing or invalid",
-    "type": "frontmatter",
-  },
-  {
-    "location": "frontmatter",
-    "message": "Required field "description" is missing or invalid",
-    "type": "frontmatter",
-  },
 ]
 `;
 
 exports[`markdown-di CLI - Integration Tests Edge Cases handles missing files in dependencies 1`] = `
 [
   {
-    "location": "blueprints.sections.nonexistent",
-    "message": "Blueprint file not found: sections/does-not-exist.md",
+    "location": "partials.nonexistent",
+    "message": "Partial file not found: sections/does-not-exist.md",
     "type": "file",
   },
 ]
@@ -526,34 +552,18 @@ exports[`markdown-di CLI - Integration Tests Edge Cases handles malformed refere
 [
   {
     "location": "line 5, column 0",
-    "message": "Invalid characters in reference: "invalid{nested"",
+    "message": "Invalid characters in partial reference: "invalid{nested"",
     "type": "syntax",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Invalid reference format: "too.many.levels.here.really" (expected: {{group.key}} or {{section.group.key}})",
-    "type": "syntax",
-  },
-  {
-    "location": "line 5, column 0",
-    "message": "Reference "{{invalid{nested}}" is not declared in frontmatter",
-    "type": "reference",
-  },
-  {
-    "location": "line 6, column 0",
-    "message": "Reference "{{too.many.levels.here.really}}" is not declared in frontmatter",
-    "type": "reference",
   },
 ]
 `;
 
 exports[`markdown-di CLI - Integration Tests Edge Cases handles documents with special characters 1`] = `
 "---
-name: "special-chars"
-description: "Document with special characters"
-blueprints:
-  sections:
-    intro: "sections/intro.md"
+name: special-chars
+description: Document with special characters
+partials:
+  intro: sections/intro.md
 ---
 
 # Special Characters Test

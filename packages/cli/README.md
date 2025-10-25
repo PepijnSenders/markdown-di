@@ -70,7 +70,7 @@ interface MarkdownDIConfig {
 
   /**
    * Glob patterns to match markdown files
-   * @default ['**\/*.md']
+   * @default ['**/*.md']
    */
   include?: string[];
 
@@ -83,6 +83,7 @@ interface MarkdownDIConfig {
   /**
    * Registered schemas for frontmatter validation
    * Key is the schema name (matches frontmatter.name field)
+   * These are registered using mdi.registerSchemas() internally
    */
   schemas?: Record<string, ZodSchema>;
 

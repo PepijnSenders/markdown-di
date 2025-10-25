@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Format markdown files with frontmatter dependency injection",
   "bin": {
     "markdown-di": "./dist/cli.js",

@@ -9,10 +9,10 @@
   "scripts": {
     "build": "bun run --cwd packages/core build && bun run --filter './packages/*' --filter '!@markdown-di/core' build",
     "test": "bun test",
-    "lint": "eslint packages/**/*.ts",
-    "format": "prettier --write \"packages/**/*.{ts,json,md}\"",
-    "version": "node scripts/version.js",
-    "release": "node scripts/release.js"
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "fix": "biome check --write ."
   },
   "keywords": [
     "markdown",
@@ -31,11 +31,8 @@
     "url": "https://github.com/PepijnSenders/markdown-di.git"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.0",
     "@types/bun": "latest",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
     "typescript": "^5.3.3"
   }
 }

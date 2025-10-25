@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'bun:test';
-import { MarkdownDI } from '../src/index';
+import { describe, expect, test } from 'bun:test'
+import { MarkdownDI } from '../src/index'
 
 describe('Simple Demo - Mustache + Partials', () => {
   test('demonstrates the complete workflow', async () => {
@@ -27,18 +27,18 @@ By {{author.name}} ({{author.email}})
 ## Conclusion
 
 That's all folks!
-`;
+`
 
-    const mdi = new MarkdownDI();
+    const mdi = new MarkdownDI()
     const result = await mdi.process({
       content,
       baseDir: './test',
-    });
+    })
 
-    console.log('\n=== Processed Content ===\n');
-    console.log(result.content);
-    console.log('\n=== Errors ===\n');
-    console.log(result.errors);
+    console.log('\n=== Processed Content ===\n')
+    console.log(result.content)
+    console.log('\n=== Errors ===\n')
+    console.log(result.errors)
 
     expect(result.content).toMatchInlineSnapshot(`
       "---
@@ -70,5 +70,5 @@ That's all folks!
 
     // No errors since we removed the partial reference
     expect(result.errors).toEqual([])
-  });
-});
+  })
+})

@@ -1,54 +1,54 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { MarkdownDI } from '../src/index';
-import { z } from 'zod';
-import { join } from 'path';
-import { mkdirSync, writeFileSync, rmSync } from 'fs';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { z } from 'zod'
+import { MarkdownDI } from '../src/index'
 
-const TEST_DIR = join(__dirname, '../../test-fixtures');
+const TEST_DIR = join(__dirname, '../../test-fixtures')
 
 // Setup test fixtures
 function setupTestFixtures() {
   // Create test directory
-  mkdirSync(TEST_DIR, { recursive: true });
-  mkdirSync(join(TEST_DIR, 'sections'), { recursive: true });
-  mkdirSync(join(TEST_DIR, 'guides'), { recursive: true });
+  mkdirSync(TEST_DIR, { recursive: true })
+  mkdirSync(join(TEST_DIR, 'sections'), { recursive: true })
+  mkdirSync(join(TEST_DIR, 'guides'), { recursive: true })
 
   // Create section files
   writeFileSync(
     join(TEST_DIR, 'sections', 'intro.md'),
-    '# Introduction\n\nThis is the introduction section with some content.'
-  );
+    '# Introduction\n\nThis is the introduction section with some content.',
+  )
 
   writeFileSync(
     join(TEST_DIR, 'sections', 'conclusion.md'),
-    '# Conclusion\n\nThis wraps up the document nicely.'
-  );
+    '# Conclusion\n\nThis wraps up the document nicely.',
+  )
 
   // Create guide files
   writeFileSync(
     join(TEST_DIR, 'guides', 'getting-started.md'),
-    '## Getting Started Guide\n\nStep 1: Install the package\nStep 2: Configure it\nStep 3: Use it'
-  );
+    '## Getting Started Guide\n\nStep 1: Install the package\nStep 2: Configure it\nStep 3: Use it',
+  )
 
   writeFileSync(
     join(TEST_DIR, 'guides', 'advanced.md'),
-    '## Advanced Usage\n\nThis covers advanced topics and patterns.'
-  );
+    '## Advanced Usage\n\nThis covers advanced topics and patterns.',
+  )
 }
 
 // Cleanup test fixtures
 function cleanupTestFixtures() {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  rmSync(TEST_DIR, { recursive: true, force: true })
 }
 
 describe('MarkdownDI - Core Integration Tests', () => {
   beforeAll(() => {
-    setupTestFixtures();
-  });
+    setupTestFixtures()
+  })
 
   afterAll(() => {
-    cleanupTestFixtures();
-  });
+    cleanupTestFixtures()
+  })
 
   describe('Basic Processing', () => {
     test('processes simple partial references with shorthand syntax', async () => {
@@ -63,18 +63,18 @@ partials:
 # My Document
 
 {{partials.intro}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.content).toMatchSnapshot();
-      expect(result.errors).toMatchSnapshot();
-      expect(result.frontmatter.name).toBe('test-document');
-    });
+      expect(result.content).toMatchSnapshot()
+      expect(result.errors).toMatchSnapshot()
+      expect(result.frontmatter.name).toBe('test-document')
+    })
 
     test('processes partial references with explicit syntax', async () => {
       const content = `---
@@ -95,22 +95,22 @@ partials:
 Some content here.
 
 {{partials.conclusion}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
       // Captures current behavior - explicit syntax validates but may not resolve
-      expect(result.content).toMatchSnapshot();
-      expect(result.errors).toMatchSnapshot();
-      expect(result.frontmatter.name).toBe('explicit-syntax-doc');
+      expect(result.content).toMatchSnapshot()
+      expect(result.errors).toMatchSnapshot()
+      expect(result.frontmatter.name).toBe('explicit-syntax-doc')
 
       // The explicit syntax {{partials.intro}} should be supported
       // per the README, but currently only shorthand {{partials.intro}} works
-    });
+    })
 
     test('processes multiple partial references', async () => {
       const content = `---
@@ -131,17 +131,17 @@ partials:
 Some content in the middle.
 
 {{partials.conclusion}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.content).toMatchSnapshot();
-      expect(result.errors).toMatchSnapshot();
-    });
+      expect(result.content).toMatchSnapshot()
+      expect(result.errors).toMatchSnapshot()
+    })
 
     test('processes partial arrays with wildcards', async () => {
       const content = `---
@@ -155,17 +155,17 @@ partials:
 # All Guides
 
 {{partials.guides}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.content).toMatchSnapshot();
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
+      expect(result.content).toMatchSnapshot()
+      expect(result.errors.length).toBeGreaterThanOrEqual(0)
+    })
 
     test('processes mixed partial and reference dependencies', async () => {
       const content = `---
@@ -186,18 +186,18 @@ partials:
 ## Related Guides
 
 {{partials.guides}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.content).toMatchSnapshot();
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
-  });
+      expect(result.content).toMatchSnapshot()
+      expect(result.errors.length).toBeGreaterThanOrEqual(0)
+    })
+  })
 
   describe('Validation', () => {
     test('validates and catches missing frontmatter fields', async () => {
@@ -208,20 +208,20 @@ name: incomplete-doc
 # Document Without Description
 
 {{partials.intro}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
         baseDir: TEST_DIR,
-        mode: 'validate'
-      });
+        mode: 'validate',
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.length).toBeGreaterThan(0)
       // Without a schema, we only get injection errors for undefined variables
-      expect(result.errors.some(e => e.type === 'injection')).toBe(true);
-    });
+      expect(result.errors.some((e) => e.type === 'injection')).toBe(true)
+    })
 
     test('validates and catches undefined references', async () => {
       const content = `---
@@ -237,19 +237,19 @@ partials:
 {{partials.intro}}
 {{partials.undefined}}
 {{something.random}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
         baseDir: TEST_DIR,
-        mode: 'validate'
-      });
+        mode: 'validate',
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some(e => e.message.includes('undefined'))).toBe(true);
-    });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.length).toBeGreaterThan(0)
+      expect(result.errors.some((e) => e.message.includes('undefined'))).toBe(true)
+    })
 
     test('validates reference syntax', async () => {
       const content = `---
@@ -262,18 +262,18 @@ description: Document with syntax errors
 {{}}
 {{invalid{nested}}}
 {{too.many.levels.here.really}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
         baseDir: TEST_DIR,
-        mode: 'validate'
-      });
+        mode: 'validate',
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.some(e => e.type === 'syntax')).toBe(true);
-    });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.some((e) => e.type === 'syntax')).toBe(true)
+    })
 
     test('validates partial structure', async () => {
       const content = `---
@@ -287,20 +287,20 @@ partials:
 # Document
 
 Content here.
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
         baseDir: TEST_DIR,
-        mode: 'validate'
-      });
+        mode: 'validate',
+      })
 
-      expect(result.errors).toMatchSnapshot();
+      expect(result.errors).toMatchSnapshot()
       // Partials structure validation is basic - array is valid but won't be used
       // No specific error type for structure, just check errors exist if any
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
+      expect(result.errors.length).toBeGreaterThanOrEqual(0)
+    })
 
     test('validates reference structure', async () => {
       const content = `---
@@ -314,9 +314,9 @@ partials:
 # Document
 
 {{partials.guides}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
 
       // The validator should catch this, but if the resolver processes it first, it may throw
       // Either way, we expect errors to be generated or an exception
@@ -324,17 +324,17 @@ partials:
         const result = await mdi.process({
           content,
           baseDir: TEST_DIR,
-          mode: 'validate'
-        });
+          mode: 'validate',
+        })
 
-        expect(result.errors).toMatchSnapshot();
-        expect(result.errors.some(e => e.type === 'frontmatter')).toBe(true);
+        expect(result.errors).toMatchSnapshot()
+        expect(result.errors.some((e) => e.type === 'frontmatter')).toBe(true)
       } catch (error) {
         // If it throws, that's also acceptable - the validation caught the error
-        expect(error).toBeDefined();
+        expect(error).toBeDefined()
       }
-    });
-  });
+    })
+  })
 
   describe('Schema Validation', () => {
     test('validates with registered schema', async () => {
@@ -342,7 +342,7 @@ partials:
         author: z.string(),
         version: z.string(),
         description: z.string().optional(),
-      });
+      })
 
       const content = `---
 schema: versioned
@@ -355,19 +355,19 @@ version: 1.0.0
 # Document
 
 Content here.
-`;
+`
 
-      const mdi = new MarkdownDI();
-      mdi.registerSchema('versioned', versionedSchema);
+      const mdi = new MarkdownDI()
+      mdi.registerSchema('versioned', versionedSchema)
 
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.length).toBe(0);
-    });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.length).toBe(0)
+    })
 
     test('catches schema validation errors', async () => {
       const strictSchema = z.object({
@@ -375,7 +375,7 @@ Content here.
         version: z.string(),
         count: z.number(),
         description: z.string().optional(),
-      });
+      })
 
       const content = `---
 schema: strict
@@ -387,26 +387,26 @@ author: Test Author
 # Document
 
 Content here.
-`;
+`
 
-      const mdi = new MarkdownDI();
-      mdi.registerSchema('strict', strictSchema);
+      const mdi = new MarkdownDI()
+      mdi.registerSchema('strict', strictSchema)
 
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.some(e => e.type === 'schema')).toBe(true);
-    });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.some((e) => e.type === 'schema')).toBe(true)
+    })
 
     test('registers and uses named schemas', async () => {
       const blogSchema = z.object({
         author: z.string(),
         publishDate: z.string(),
         description: z.string().optional(),
-      });
+      })
 
       const content = `---
 schema: blog
@@ -419,19 +419,19 @@ publishDate: "2025-01-01"
 # Blog Post
 
 Content here.
-`;
+`
 
-      const mdi = new MarkdownDI();
-      mdi.registerSchema('blog', blogSchema);
+      const mdi = new MarkdownDI()
+      mdi.registerSchema('blog', blogSchema)
 
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.length).toBe(0);
-    });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.length).toBe(0)
+    })
 
     test('catches errors for unregistered schema references', async () => {
       const content = `---
@@ -443,20 +443,24 @@ description: A blog post
 # Blog Post
 
 Content here.
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
 
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
+      expect(result.errors).toMatchSnapshot()
       // Should have an error about the schema not being registered
-      expect(result.errors.some(e => e.type === 'schema' && e.message.includes('not found in registry'))).toBe(true);
-    });
-  });
+      expect(
+        result.errors.some(
+          (e) => e.type === 'schema' && e.message.includes('not found in registry'),
+        ),
+      ).toBe(true)
+    })
+  })
 
   describe('Dependency Resolution', () => {
     test('resolves dependencies from frontmatter', async () => {
@@ -474,17 +478,17 @@ partials:
 # Document
 
 {{partials.intro}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.dependencies).toMatchSnapshot();
+      expect(result.dependencies).toMatchSnapshot()
       // Dependencies should include resolved files if they exist
-    });
+    })
 
     test('includes all resolved files in dependencies', async () => {
       const content = `---
@@ -504,21 +508,21 @@ partials:
 {{partials.intro}}
 {{partials.conclusion}}
 {{partials.guides}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.dependencies).toMatchSnapshot();
+      expect(result.dependencies).toMatchSnapshot()
       // Check if dependencies include the expected files
-      const hasIntro = result.dependencies.some(dep => dep.includes('intro.md'));
-      const hasConclusion = result.dependencies.some(dep => dep.includes('conclusion.md'));
-      expect(hasIntro || hasConclusion).toBe(true);
-    });
-  });
+      const hasIntro = result.dependencies.some((dep) => dep.includes('intro.md'))
+      const hasConclusion = result.dependencies.some((dep) => dep.includes('conclusion.md'))
+      expect(hasIntro || hasConclusion).toBe(true)
+    })
+  })
 
   describe('Error Handling', () => {
     test('handles missing files gracefully', async () => {
@@ -533,17 +537,17 @@ partials:
 # Document
 
 {{partials.missing}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.some(e => e.type === 'file')).toBe(true);
-    });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.some((e) => e.type === 'file')).toBe(true)
+    })
 
     test('handles malformed frontmatter', async () => {
       const content = `---
@@ -553,16 +557,16 @@ this is not: valid: yaml: at: all
 # Document
 
 Content here.
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
-    });
+      expect(result.errors).toMatchSnapshot()
+    })
 
     test('handles empty frontmatter', async () => {
       const content = `---
@@ -571,18 +575,18 @@ Content here.
 # Document
 
 {{partials.intro}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.errors).toMatchSnapshot();
-      expect(result.errors.some(e => e.message.includes('frontmatter'))).toBe(true);
-    });
-  });
+      expect(result.errors).toMatchSnapshot()
+      expect(result.errors.some((e) => e.message.includes('frontmatter'))).toBe(true)
+    })
+  })
 
   describe('Complex Scenarios', () => {
     test('processes document with all features combined', async () => {
@@ -617,19 +621,19 @@ Here are some related guides:
 ## Conclusion
 
 {{partials.conclusion}}
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.content).toMatchSnapshot();
-      expect(result.errors).toMatchSnapshot();
-      expect(result.dependencies).toMatchSnapshot();
-      expect(result.frontmatter).toMatchSnapshot();
-    });
+      expect(result.content).toMatchSnapshot()
+      expect(result.errors).toMatchSnapshot()
+      expect(result.dependencies).toMatchSnapshot()
+      expect(result.frontmatter).toMatchSnapshot()
+    })
 
     test('preserves formatting and whitespace', async () => {
       const content = `---
@@ -650,15 +654,15 @@ First paragraph.
 
 - List item 1
 - List item 2
-`;
+`
 
-      const mdi = new MarkdownDI();
+      const mdi = new MarkdownDI()
       const result = await mdi.process({
         content,
-        baseDir: TEST_DIR
-      });
+        baseDir: TEST_DIR,
+      })
 
-      expect(result.content).toMatchSnapshot();
-    });
-  });
-});
+      expect(result.content).toMatchSnapshot()
+    })
+  })
+})
