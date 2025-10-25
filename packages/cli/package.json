@@ -1,0 +1,44 @@
+{
+  "name": "@markdown-di/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI tool for markdown-di - dependency injection for markdown files",
+  "bin": {
+    "markdown-di": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && tsc --emitDeclarationOnly",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "markdown",
+    "cli",
+    "dependency-injection",
+    "validation",
+    "json-schema"
+  ],
+  "author": "Pepijn Senders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PepijnSenders/markdown-di.git",
+    "directory": "packages/cli"
+  },
+  "dependencies": {
+    "@markdown-di/core": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "fast-glob": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.1",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3"
+  }
+}
