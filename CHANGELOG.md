@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.2] - 2025-10-26
+
+### Changed
+- feat: add CLI package with AJV-based JSON Schema validation ([#4](https://github.com/PepijnSenders/markdown-di/pull/4)) by @PepijnSenders
+
+
 ## [0.9.1] - 2025-10-25
 
 ### Changed
