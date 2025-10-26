@@ -1,8 +1,39 @@
-Generate comprehensive tests for the specified file or module.
+---
+allowed-tools: 'Read, Write, Edit, Bash, Grep'
+description: >-
+  Generate comprehensive unit and integration tests for a specified file or
+  module
+model: claude-sonnet-4-5-20250929
+---
 
-Usage: /generate-tests <file-path>
+# Command: /generate-tests
 
-Process:
+## Metadata
+- **Category**: testing
+- **Priority**: high
+- **Version**: 1.0.0
+- **Author**: Development Team
+- **Last Updated**: 2025-01-26
+
+## Description
+Generate comprehensive unit and integration tests for a specified file or module
+
+## Tags
+- testing
+- unit-tests
+- coverage
+- TDD
+
+## Usage
+```bash
+/generate-tests <file-path>
+```
+
+## Arguments
+- `<file-path>` (required): Path to the source file to generate tests for
+
+## What it does
+
 1. Read the source file
 2. Identify all functions, classes, and methods
 3. Create test file with:
@@ -16,7 +47,14 @@ Process:
 7. Mock external dependencies
 8. Run tests to verify they pass
 
-Example output structure:
+## Example
+
+```bash
+/generate-tests src/services/user-service.ts
+```
+
+## Expected Output
+
 ```typescript
 describe('UserService', () => {
   describe('createUser', () => {
@@ -40,4 +78,8 @@ describe('UserService', () => {
 })
 ```
 
-Target: 90%+ code coverage
+## Target
+- 90%+ code coverage
+- All edge cases covered
+- Error scenarios handled
+- Clear, descriptive test names

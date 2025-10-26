@@ -1,4 +1,34 @@
-Review the current pull request:
+---
+allowed-tools: 'Read, Grep, Glob, Bash'
+description: >-
+  Comprehensive pull request review with code quality, security, and test
+  coverage analysis
+model: claude-sonnet-4-5-20250929
+---
+
+# Command: /review-pr
+
+## Metadata
+- **Category**: code-review
+- **Priority**: high
+- **Version**: 1.0.0
+- **Author**: Development Team
+- **Last Updated**: 2025-01-26
+
+## Description
+Comprehensive pull request review with code quality, security, and test coverage analysis
+
+## Tags
+- pr-review
+- code-quality
+- security
+
+## Usage
+```bash
+/review-pr
+```
+
+## What it does
 
 1. Check out the PR branch
 2. Read all changed files
@@ -11,7 +41,8 @@ Review the current pull request:
    - Suggestions for improvement
 7. Add review comments to the PR
 
-Output format:
+## Output Format
+
 ```
 PR Review Summary
 =================
@@ -31,3 +62,17 @@ Suggestions:
 - Update API documentation
 - Consider adding integration tests
 ```
+
+## Implementation
+
+The command executes the following prompt:
+
+Review the current pull request:
+
+1. Check out the PR branch
+2. Read all changed files
+3. Analyze code quality, security, and performance
+4. Check for test coverage
+5. Verify documentation is updated
+6. Provide a summary with strengths, issues (categorized by severity), and suggestions
+7. Add review comments to the PR

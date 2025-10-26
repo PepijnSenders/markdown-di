@@ -1,0 +1,15 @@
+{
+  "name": "slash-commands-variants-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "bun run generate.ts"
+  },
+  "dependencies": {
+    "@markdown-di/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.17"
+  }
+}
