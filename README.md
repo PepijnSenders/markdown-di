@@ -1087,6 +1087,50 @@ console.log(`✓ Processed ${result.totalFiles} files`);
 console.log(`✓ ${result.changedFiles} files updated`);
 ```
 
+## Examples
+
+Check out the [`examples/`](./examples) directory for real-world use cases:
+
+### [.claude Folder Organization](./examples/claude-folder-organization)
+Organize and document Claude Code agents and commands with schema validation.
+
+**Features:**
+- Agent schema with system prompts, tools, and examples
+- Command schema with categories and usage patterns
+- Auto-generated documentation with consistent structure
+- Validation for naming conventions and required fields
+
+**Use cases:**
+- Document AI agents and their capabilities
+- Standardize slash commands across projects
+- Ensure consistency in .claude folder structure
+
+[View Example →](./examples/claude-folder-organization)
+
+### [Personal Notes Organization](./examples/personal-notes)
+Manage personal notes, meeting notes, projects, and book summaries with type-safe schemas.
+
+**Features:**
+- Meeting notes with attendees, topics, and action items
+- Daily notes with mood tracking and focus areas
+- Project tracking with status, milestones, and links
+- Book notes with ratings and reading progress
+
+**Use cases:**
+- Personal knowledge management
+- Team meeting documentation
+- Project tracking and planning
+- Reading list and book summaries
+
+[View Example →](./examples/personal-notes)
+
+Both examples include:
+- ✅ Complete JSON Schema definitions
+- ✅ Sample markdown files with Mustache templates
+- ✅ Pre-built `dist/` folders showing output
+- ✅ CLI and programmatic usage examples
+- ✅ README with setup instructions
+
 ## TypeScript Support
 
 Full TypeScript support with exported types:

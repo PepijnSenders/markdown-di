@@ -1,0 +1,69 @@
+{
+  "schemas": {
+    "agent": {
+      "type": "object",
+      "required": ["name", "description", "systemPrompt"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Agent name"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Brief description of what the agent does"
+        },
+        "systemPrompt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "System prompt for the agent"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of tools the agent has access to"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "input": { "type": "string" },
+              "output": { "type": "string" }
+            }
+          },
+          "description": "Example interactions"
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "required": ["name", "description", "prompt"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Command name (lowercase, hyphens allowed)"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Brief description shown in command list"
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The prompt to execute when command is run"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["code-review", "testing", "documentation", "refactoring", "utilities"],
+          "description": "Category for organization"
+        }
+      }
+    }
+  }
+}

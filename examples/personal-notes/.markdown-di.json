@@ -1,0 +1,150 @@
+{
+  "schemas": {
+    "meeting-note": {
+      "type": "object",
+      "required": ["title", "date", "attendees", "topics"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "attendees": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "topics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "location": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "daily-note": {
+      "type": "object",
+      "required": ["date", "mood", "focus"],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "mood": {
+          "type": "string",
+          "enum": ["great", "good", "okay", "challenging", "difficult"]
+        },
+        "focus": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Top 3 focus areas for the day"
+        },
+        "energy": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "project-note": {
+      "type": "object",
+      "required": ["title", "status", "owner", "startDate"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planning", "in-progress", "blocked", "completed", "archived"]
+        },
+        "owner": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        }
+      }
+    },
+    "book-note": {
+      "type": "object",
+      "required": ["title", "author", "status"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["to-read", "reading", "finished", "abandoned"]
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "finishDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "genre": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
