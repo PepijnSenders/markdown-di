@@ -4,6 +4,27 @@ name: test-generator
 description: Generates comprehensive unit and integration tests. Use when creating tests for new code or improving test coverage.
 tools: Read, Write, Edit, Bash
 model: sonnet
+category: testing
+priority: high
+version: 1.0.0
+author: Development Team
+created: 2025-01-26
+updated: 2025-01-26
+tags:
+  - testing
+  - unit-tests
+  - integration-tests
+  - TDD
+use-cases:
+  - New feature testing
+  - Improving test coverage
+  - TDD workflows
+  - Regression testing
+output-frontmatter:
+  - name
+  - description
+  - tools
+  - model
 ---
 
 # {{name}} Agent
@@ -11,9 +32,26 @@ model: sonnet
 ## Description
 {{description}}
 
+## Metadata
+- **Category**: {{category}}
+- **Priority**: {{priority}}
+- **Version**: {{version}}
+- **Author**: {{author}}
+- **Last Updated**: {{updated}}
+
 ## Configuration
 - **Tools**: {{tools}}
 - **Model**: {{model}}
+
+## Tags
+{{#tags}}
+- {{.}}
+{{/tags}}
+
+## Use Cases
+{{#use-cases}}
+- {{.}}
+{{/use-cases}}
 
 ## System Prompt
 

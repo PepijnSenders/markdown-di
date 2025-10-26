@@ -2,7 +2,7 @@
   "schemas": {
     "agent": {
       "type": "object",
-      "required": ["name", "description"],
+      "required": ["name", "description", "category", "version"],
       "properties": {
         "name": {
           "type": "string",
@@ -22,13 +22,127 @@
           "type": "string",
           "enum": ["sonnet", "opus", "haiku", "inherit"],
           "description": "Model to use for this agent"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["code-quality", "testing", "documentation", "refactoring", "security", "performance"],
+          "description": "Agent category for organization"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Agent priority level"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version number"
+        },
+        "author": {
+          "type": "string",
+          "description": "Agent author or team"
+        },
+        "created": {
+          "type": "string",
+          "format": "date",
+          "description": "Creation date (YYYY-MM-DD)"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date",
+          "description": "Last update date (YYYY-MM-DD)"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for categorization and search"
+        },
+        "use-cases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Common use cases for this agent"
         }
       }
     },
     "command": {
       "type": "object",
+      "required": ["name", "description", "category", "version"],
       "description": "Slash command definition for Claude Code",
-      "additionalProperties": false
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Command name (lowercase, hyphens)"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What this command does"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["code-review", "testing", "documentation", "refactoring", "utilities"],
+          "description": "Command category"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Command priority"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author or team"
+        },
+        "created": {
+          "type": "string",
+          "format": "date"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            }
+          },
+          "description": "Command arguments"
+        },
+        "allowed-tools": {
+          "type": "string",
+          "description": "Comma-separated list of tools the command can use"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model to use for this command"
+        }
+      }
     }
   }
 }

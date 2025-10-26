@@ -4,6 +4,26 @@ name: code-reviewer
 description: Expert code reviewer. Use proactively after code changes to identify bugs, security issues, and improvements.
 tools: Read, Grep, Glob
 model: sonnet
+category: code-quality
+priority: high
+version: 1.0.0
+author: Development Team
+created: 2025-01-26
+updated: 2025-01-26
+tags:
+  - code-review
+  - security
+  - best-practices
+use-cases:
+  - Post-commit review
+  - PR validation
+  - Security audits
+  - Refactoring assessment
+output-frontmatter:
+  - name
+  - description
+  - tools
+  - model
 ---
 
 # {{name}} Agent
@@ -11,9 +31,26 @@ model: sonnet
 ## Description
 {{description}}
 
+## Metadata
+- **Category**: {{category}}
+- **Priority**: {{priority}}
+- **Version**: {{version}}
+- **Author**: {{author}}
+- **Last Updated**: {{updated}}
+
 ## Configuration
 - **Tools**: {{tools}}
 - **Model**: {{model}}
+
+## Tags
+{{#tags}}
+- {{.}}
+{{/tags}}
+
+## Use Cases
+{{#use-cases}}
+- {{.}}
+{{/use-cases}}
 
 ## System Prompt
 

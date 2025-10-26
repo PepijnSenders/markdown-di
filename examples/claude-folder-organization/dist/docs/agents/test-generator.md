@@ -1,12 +1,10 @@
 ---
-schema: agent
 name: test-generator
 description: >-
   Generates comprehensive unit and integration tests. Use when creating tests
   for new code or improving test coverage.
 tools: 'Read, Write, Edit, Bash'
 model: sonnet
-id: test-generator
 ---
 
 # test-generator Agent
@@ -14,9 +12,28 @@ id: test-generator
 ## Description
 Generates comprehensive unit and integration tests. Use when creating tests for new code or improving test coverage.
 
+## Metadata
+- **Category**: testing
+- **Priority**: high
+- **Version**: 1.0.0
+- **Author**: Development Team
+- **Last Updated**: 2025-01-26
+
 ## Configuration
 - **Tools**: Read, Write, Edit, Bash
 - **Model**: sonnet
+
+## Tags
+- testing
+- unit-tests
+- integration-tests
+- TDD
+
+## Use Cases
+- New feature testing
+- Improving test coverage
+- TDD workflows
+- Regression testing
 
 ## System Prompt
 

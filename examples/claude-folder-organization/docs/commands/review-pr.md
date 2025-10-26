@@ -1,11 +1,42 @@
 ---
 schema: command
+name: review-pr
+description: Comprehensive pull request review with code quality, security, and test coverage analysis
+category: code-review
+priority: high
+version: 1.0.0
+author: Development Team
+created: 2025-01-26
+updated: 2025-01-26
+tags:
+  - pr-review
+  - code-quality
+  - security
+arguments: []
+allowed-tools: Read, Grep, Glob, Bash
+model: claude-sonnet-4-5-20250929
+output-frontmatter:
+  - allowed-tools
+  - description
+  - model
 ---
 
-# Command: /review-pr
+# Command: /{{name}}
+
+## Metadata
+- **Category**: {{category}}
+- **Priority**: {{priority}}
+- **Version**: {{version}}
+- **Author**: {{author}}
+- **Last Updated**: {{updated}}
 
 ## Description
-Review the current pull request with comprehensive analysis.
+{{description}}
+
+## Tags
+{{#tags}}
+- {{.}}
+{{/tags}}
 
 ## Usage
 ```bash

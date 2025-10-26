@@ -1,19 +1,56 @@
 ---
 schema: command
+name: generate-tests
+description: Generate comprehensive unit and integration tests for a specified file or module
+category: testing
+priority: high
+version: 1.0.0
+author: Development Team
+created: 2025-01-26
+updated: 2025-01-26
+tags:
+  - testing
+  - unit-tests
+  - coverage
+  - TDD
+arguments:
+  - name: file-path
+    description: Path to the source file to generate tests for
+    required: true
+allowed-tools: Read, Write, Edit, Bash, Grep
+model: claude-sonnet-4-5-20250929
+output-frontmatter:
+  - allowed-tools
+  - description
+  - model
 ---
 
-# Command: /generate-tests
+# Command: /{{name}}
+
+## Metadata
+- **Category**: {{category}}
+- **Priority**: {{priority}}
+- **Version**: {{version}}
+- **Author**: {{author}}
+- **Last Updated**: {{updated}}
 
 ## Description
-Generate comprehensive tests for a specified file or module.
+{{description}}
+
+## Tags
+{{#tags}}
+- {{.}}
+{{/tags}}
 
 ## Usage
 ```bash
-/generate-tests <file-path>
+/{{name}} <file-path>
 ```
 
 ## Arguments
-- `<file-path>`: Path to the source file to generate tests for
+{{#arguments}}
+- `<{{name}}>` ({{#required}}required{{/required}}{{^required}}optional{{/required}}): {{description}}
+{{/arguments}}
 
 ## What it does
 

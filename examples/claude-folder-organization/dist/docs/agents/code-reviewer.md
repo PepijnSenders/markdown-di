@@ -1,12 +1,10 @@
 ---
-schema: agent
 name: code-reviewer
 description: >-
   Expert code reviewer. Use proactively after code changes to identify bugs,
   security issues, and improvements.
 tools: 'Read, Grep, Glob'
 model: sonnet
-id: code-reviewer
 ---
 
 # code-reviewer Agent
@@ -14,9 +12,27 @@ id: code-reviewer
 ## Description
 Expert code reviewer. Use proactively after code changes to identify bugs, security issues, and improvements.
 
+## Metadata
+- **Category**: code-quality
+- **Priority**: high
+- **Version**: 1.0.0
+- **Author**: Development Team
+- **Last Updated**: 2025-01-26
+
 ## Configuration
 - **Tools**: Read, Grep, Glob
 - **Model**: sonnet
+
+## Tags
+- code-review
+- security
+- best-practices
+
+## Use Cases
+- Post-commit review
+- PR validation
+- Security audits
+- Refactoring assessment
 
 ## System Prompt
 
