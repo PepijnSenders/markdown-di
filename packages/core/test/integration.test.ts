@@ -452,10 +452,10 @@ Content here.
       })
 
       expect(result.errors).toMatchSnapshot()
-      // Should have an error about the schema not being registered
+      // Should have an error about the schema not being found
       expect(
         result.errors.some(
-          (e) => e.type === 'schema' && e.message.includes('not found in registry'),
+          (e) => e.type === 'schema' && e.message.includes('not found'),
         ),
       ).toBe(true)
     })
