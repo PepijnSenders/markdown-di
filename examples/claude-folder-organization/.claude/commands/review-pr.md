@@ -1,38 +1,3 @@
----
-schema: command
-name: review-pr
-description: Review a pull request and provide detailed feedback
-category: code-review
-prompt: |
-  Review the current pull request:
-
-  1. Check out the PR branch
-  2. Read all changed files
-  3. Analyze code quality, security, and performance
-  4. Check for test coverage
-  5. Verify documentation is updated
-  6. Provide a summary with:
-     - Strengths
-     - Issues (categorized by severity)
-     - Suggestions for improvement
-  7. Add review comments to the PR
-id: review-pr-command
----
-
-# Command: /review-pr
-
-## Description
-Review a pull request and provide detailed feedback
-
-## Category
-`code-review`
-
-## Usage
-```bash
-/review-pr
-```
-
-## What it does
 Review the current pull request:
 
 1. Check out the PR branch
@@ -46,8 +11,7 @@ Review the current pull request:
    - Suggestions for improvement
 7. Add review comments to the PR
 
-
-## Example Output
+Output format:
 ```
 PR Review Summary
 =================

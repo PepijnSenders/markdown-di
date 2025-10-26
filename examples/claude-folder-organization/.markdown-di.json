@@ -2,68 +2,33 @@
   "schemas": {
     "agent": {
       "type": "object",
-      "required": ["name", "description", "systemPrompt"],
+      "required": ["name", "description"],
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1,
-          "description": "Agent name"
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Unique identifier using lowercase letters and hyphens"
         },
         "description": {
           "type": "string",
           "minLength": 1,
-          "description": "Brief description of what the agent does"
-        },
-        "systemPrompt": {
-          "type": "string",
-          "minLength": 1,
-          "description": "System prompt for the agent"
+          "description": "Natural language description of when this agent should be invoked"
         },
         "tools": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of tools the agent has access to"
+          "type": "string",
+          "description": "Comma-separated list of specific tools (optional)"
         },
-        "examples": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "input": { "type": "string" },
-              "output": { "type": "string" }
-            }
-          },
-          "description": "Example interactions"
+        "model": {
+          "type": "string",
+          "enum": ["sonnet", "opus", "haiku", "inherit"],
+          "description": "Model to use for this agent"
         }
       }
     },
     "command": {
       "type": "object",
-      "required": ["name", "description", "prompt"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "pattern": "^[a-z0-9-]+$",
-          "description": "Command name (lowercase, hyphens allowed)"
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Brief description shown in command list"
-        },
-        "prompt": {
-          "type": "string",
-          "minLength": 1,
-          "description": "The prompt to execute when command is run"
-        },
-        "category": {
-          "type": "string",
-          "enum": ["code-review", "testing", "documentation", "refactoring", "utilities"],
-          "description": "Category for organization"
-        }
-      }
+      "description": "Slash command definition for Claude Code",
+      "additionalProperties": false
     }
   }
 }

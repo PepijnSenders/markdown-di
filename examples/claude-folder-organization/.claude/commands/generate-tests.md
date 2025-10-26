@@ -1,42 +1,8 @@
----
-schema: command
-name: generate-tests
-description: Generate comprehensive tests for a file or module
-category: testing
-prompt: |
-  Generate tests for the specified file or module:
+Generate comprehensive tests for the specified file or module.
 
-  1. Read the source file
-  2. Identify all functions, classes, and methods
-  3. Create test file with:
-     - Unit tests for each function/method
-     - Edge cases (null, undefined, empty, boundary values)
-     - Error scenarios
-     - Integration tests if applicable
-  4. Use appropriate testing framework (Jest, Vitest, etc.)
-  5. Follow AAA pattern (Arrange, Act, Assert)
-  6. Add descriptive test names
-  7. Mock external dependencies
-  8. Run tests to verify they pass
-id: generate-tests-command
----
+Usage: /generate-tests <file-path>
 
-# Command: /generate-tests
-
-## Description
-Generate comprehensive tests for a file or module
-
-## Category
-`testing`
-
-## Usage
-```bash
-/generate-tests <file-path>
-```
-
-## What it does
-Generate tests for the specified file or module:
-
+Process:
 1. Read the source file
 2. Identify all functions, classes, and methods
 3. Create test file with:
@@ -50,13 +16,7 @@ Generate tests for the specified file or module:
 7. Mock external dependencies
 8. Run tests to verify they pass
 
-
-## Example
-```bash
-/generate-tests src/services/user-service.ts
-```
-
-## Generated Test Structure
+Example output structure:
 ```typescript
 describe('UserService', () => {
   describe('createUser', () => {
@@ -79,3 +39,5 @@ describe('UserService', () => {
   })
 })
 ```
+
+Target: 90%+ code coverage
