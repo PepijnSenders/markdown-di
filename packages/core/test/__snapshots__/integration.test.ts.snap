@@ -174,7 +174,7 @@ exports[`MarkdownDI - Core Integration Tests Schema Validation catches errors fo
 [
   {
     "location": "frontmatter.schema",
-    "message": "Schema "nonexistent-schema" not found in registry. Register it with registerSchema() first.",
+    "message": "Schema "nonexistent-schema" not found. No schemas registered.",
     "type": "schema",
   },
 ]
