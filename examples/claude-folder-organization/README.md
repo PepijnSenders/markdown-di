@@ -158,44 +158,25 @@ $ claude
 > /generate-tests src/user-service.ts
 ```
 
-### 2. Validate with CLI
+### 2. Using the CLI
 
 ```bash
-# Validate agent configurations
-markdown-di validate docs/agents/
+# From this directory, validate agents
+bun ../../packages/cli/dist/index.js validate docs/agents/
+
+# Build to .claude folder
+bun ../../packages/cli/dist/index.js build docs/ --output dist/.claude/
 
 # Build documentation
-markdown-di build docs/ --output dist/docs/
-
-# This generates the .claude folder
-cp -r .claude dist/.claude
+bun ../../packages/cli/dist/index.js build docs/ --output dist/docs/
 ```
 
-### 3. Programmatic API
+### 3. Result
 
-```typescript
-import { MarkdownDI } from '@markdown-di/core'
-import { readFileSync } from 'fs'
-
-const mdi = new MarkdownDI()
-
-// Load schema
-const config = JSON.parse(readFileSync('.markdown-di.json', 'utf-8'))
-for (const [name, schema] of Object.entries(config.schemas)) {
-  mdi.registerSchema(name, schema)
-}
-
-// Validate an agent
-const agentDoc = readFileSync('docs/agents/code-reviewer.md', 'utf-8')
-const result = await mdi.process({ content: agentDoc })
-
-if (result.errors.length > 0) {
-  console.error('Validation errors:', result.errors)
-} else {
-  // Write validated agent to .claude folder
-  writeFileSync('.claude/agents/code-reviewer.md', result.output)
-}
-```
+The `.claude` folder in `dist/.claude/` is ready to use:
+- Agents have only required frontmatter (name, description, tools, model)
+- Commands have only Claude Code frontmatter (allowed-tools, description, model)
+- All other metadata stays in documentation (`dist/docs/`)
 
 ## Example Agents
 

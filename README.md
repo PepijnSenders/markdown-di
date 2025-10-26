@@ -145,17 +145,27 @@ tags: [tutorial, beginners]
 By {{author}}
 ```
 
-#### 3. Validate or build
+#### 3. Install the CLI
+
+```bash
+# Install globally (after publishing)
+npm install -g @markdown-di/cli
+
+# Or use with npx (no install needed)
+npx @markdown-di/cli --help
+```
+
+#### 4. Validate or build
 
 ```bash
 # Validate files (no output)
-markdown-di validate docs/
+npx @markdown-di/cli validate docs/
 
 # Build with processed output
-markdown-di build docs/ --output dist/
+npx @markdown-di/cli build docs/ --output dist/
 
 # Use explicit config path
-markdown-di validate docs/ --config path/to/.markdown-di.json
+npx @markdown-di/cli validate docs/ --config path/to/.markdown-di.json
 ```
 
 The CLI will:
@@ -520,8 +530,8 @@ Create a `.markdown-di.json` config file:
 Then run the CLI:
 
 ```bash
-markdown-di validate docs/
-markdown-di build docs/ --output dist/
+npx @markdown-di/cli validate docs/
+npx @markdown-di/cli build docs/ --output dist/
 ```
 
 #### Using Programmatically (JSON Schema)
@@ -729,16 +739,16 @@ Validate markdown files without writing output. Perfect for CI/CD pipelines.
 
 ```bash
 # Validate single file
-markdown-di validate docs/post.md
+npx @markdown-di/cli validate docs/post.md
 
 # Validate directory
-markdown-di validate docs/
+npx @markdown-di/cli validate docs/
 
 # Validate with glob pattern
-markdown-di validate "docs/**/*.md"
+npx @markdown-di/cli validate "docs/**/*.md"
 
 # Use explicit config
-markdown-di validate docs/ --config path/to/.markdown-di.json
+npx @markdown-di/cli validate docs/ --config path/to/.markdown-di.json
 ```
 
 **Options:**
@@ -754,16 +764,16 @@ Build markdown files with dependency injection and optional output directory.
 
 ```bash
 # Build single file to output directory
-markdown-di build docs/post.md --output dist/
+npx @markdown-di/cli build docs/post.md --output dist/
 
 # Build entire directory
-markdown-di build docs/ --output dist/
+npx @markdown-di/cli build docs/ --output dist/
 
 # Build in-place (overwrites source files)
-markdown-di build docs/
+npx @markdown-di/cli build docs/
 
 # Use explicit config
-markdown-di build docs/ --output dist/ --config .markdown-di.json
+npx @markdown-di/cli build docs/ --output dist/ --config .markdown-di.json
 ```
 
 **Options:**
