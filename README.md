@@ -1134,7 +1134,24 @@ Manage personal notes, meeting notes, projects, and book summaries with type-saf
 
 [View Example →](./examples/personal-notes)
 
-Both examples include:
+### [Slash Commands with Variants API](./examples/slash-commands-variants)
+Generate multiple Claude Code slash commands from a single template using the variants API.
+
+**Features:**
+- One template generates 5 recipe management commands
+- Type-safe variant data in TypeScript
+- Dynamic output paths via `getOutputPath` callback
+- Demonstrates `$dynamic` fields and `onBeforeCompile` hook
+
+**Use cases:**
+- Generate multiple similar slash commands efficiently
+- Maintain consistency across command definitions
+- Avoid manual duplication or LLM generation
+- Create command families with shared structure
+
+[View Example →](./examples/slash-commands-variants)
+
+All examples include:
 - ✅ Complete JSON Schema definitions
 - ✅ Sample markdown files with Mustache templates
 - ✅ Pre-built `dist/` folders showing output
