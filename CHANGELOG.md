@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.3] - 2025-10-27
+
+### Changed
+- feat: add support for custom mustache configurations ([#5](https://github.com/PepijnSenders/markdown-di/pull/5)) by @PepijnSenders
+
+
 ## [0.9.2] - 2025-10-26
 
 ### Changed
