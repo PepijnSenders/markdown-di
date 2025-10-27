@@ -9,7 +9,7 @@ import { z } from "zod";
  * Batch processing configuration
  * Extends ProcessOptions with batch-specific options
  */
-export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeCompile' | 'variants'> {
+export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeCompile' | 'variants' | 'mustache'> {
   /**
    * Glob patterns to match markdown files
    * @default ['**\/*.md']
@@ -92,11 +92,12 @@ export interface BatchResult {
 export class BatchProcessor {
   private mdi: MarkdownDI;
   private config: Required<
-    Omit<BatchConfig, "schemas" | "onBeforeCompile" | "outDir" | "variants">
+    Omit<BatchConfig, "schemas" | "onBeforeCompile" | "outDir" | "variants" | "mustache">
   > & {
     outDir?: string;
     onBeforeCompile?: BatchConfig["onBeforeCompile"];
     variants?: BatchConfig["variants"];
+    mustache?: BatchConfig["mustache"];
   };
 
   constructor(config: BatchConfig) {
@@ -110,6 +111,7 @@ export class BatchProcessor {
       silent: config.silent || false,
       onBeforeCompile: config.onBeforeCompile,
       variants: config.variants,
+      mustache: config.mustache,
     };
 
     // Register schemas if provided
@@ -159,6 +161,7 @@ export class BatchProcessor {
         currentFile: file,
         mode: "build",
         onBeforeCompile: this.config.onBeforeCompile,
+        mustache: this.config.mustache,
       });
 
       // Check if this file has variants configured
@@ -183,6 +186,7 @@ export class BatchProcessor {
                 : {};
               return { ...baseData, ...variantData };
             },
+            mustache: this.config.mustache,
           });
 
           const variantChanged = variantResult.content !== content;

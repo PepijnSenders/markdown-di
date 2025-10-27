@@ -3,17 +3,22 @@ import { isDynamicPattern } from 'fast-glob'
 import matter from 'gray-matter'
 import Mustache from 'mustache'
 import type { CircularDependencyDetector, DependencyResolver } from './resolver'
-import type { FrontmatterData, ProcessingContext, ValidationError } from './types'
+import type { FrontmatterData, MustacheConfig, ProcessingContext, ValidationError } from './types'
 
 /**
  * Processes markdown content with dependency injection
  */
 export class ContentProcessor {
+  private mustacheConfig?: MustacheConfig
+
   constructor(
     private resolver: DependencyResolver,
     private circularDetector: CircularDependencyDetector,
     private frontmatterProcessor: FrontmatterProcessor,
-  ) {}
+    mustacheConfig?: MustacheConfig,
+  ) {
+    this.mustacheConfig = mustacheConfig
+  }
 
   async process(
     content: string,
@@ -128,9 +133,17 @@ export class ContentProcessor {
     location: string = 'content',
   ): { rendered: string; error?: ValidationError } {
     try {
-      const rendered = Mustache.render(content, context, {}, {
-        escape: (text) => text // Don't escape - return text as-is
-      })
+      // Build Mustache render options
+      const renderOptions: any = {
+        escape: (text: string) => text // Don't escape - return text as-is
+      }
+
+      // Add custom tags if configured
+      if (this.mustacheConfig?.tags) {
+        renderOptions.tags = this.mustacheConfig.tags
+      }
+
+      const rendered = Mustache.render(content, context, {}, renderOptions)
       return { rendered }
     } catch (error) {
       return {
