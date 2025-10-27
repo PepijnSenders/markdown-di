@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.13] - 2025-10-27
+
+### Changed
+- revert: remove Bun catalogs and return to npm publish ([#16](https://github.com/PepijnSenders/markdown-di/pull/16)) by @PepijnSenders
+
+
 ## [0.9.12] - 2025-10-27
 
 ### Changed
