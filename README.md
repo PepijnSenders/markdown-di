@@ -80,7 +80,7 @@ docs/getting-started.md:
 - ✅ **File injection** - Include external files with `{{partials.xxx}}`
 - ✅ **Glob patterns** - `guides/*.md` expands to multiple files
 - ✅ **Security** - Path traversal protection, circular dependency detection
-- ✅ **Dynamic injection** - `onBeforeCompile` hook for runtime variable injection
+- ✅ **Dynamic fields** - `$dynamic` keyword works with hooks and variants API
 - ✅ **Multi-variant generation** - One template → many output files with different data
 - ✅ **Batch processing** - Process entire directories with one API call
 
@@ -695,7 +695,7 @@ const processor = new BatchProcessor({
 });
 ```
 
-Mark fields as `$dynamic` in frontmatter to require hook injection:
+Mark fields as `$dynamic` in frontmatter to require dynamic data:
 
 ```markdown
 ---
@@ -707,6 +707,11 @@ version: $dynamic
 Built at {{buildTime}}
 Version: {{version}}
 ```
+
+**Note:** The `$dynamic` keyword works with both:
+- The `onBeforeCompile` hook (as shown above)
+- The variants API (see [Multi-Variant Template Generation](#multi-variant-template-generation))
+- Both combined (hook + variant data)
 
 ## Multi-Variant Template Generation
 
@@ -756,6 +761,63 @@ SKU: {{sku}}
 - Original template is not written (only variants)
 - Works with `onBeforeCompile` for additional dynamic data
 - File-specific variants via `id` field in frontmatter
+
+### Using `$dynamic` Fields with Variants
+
+The `$dynamic` keyword works seamlessly with the variants API. Mark fields as `$dynamic` in your template, and provide values via the variant data:
+
+**Template file** (`templates/command.md`):
+```markdown
+---
+id: command-template
+name: $dynamic
+command: $dynamic
+description: $dynamic
+---
+
+# {{name}}
+
+Command: `{{command}}`
+
+{{description}}
+```
+
+**Variant configuration:**
+```typescript
+const processor = new BatchProcessor({
+  baseDir: './templates',
+  outDir: './dist',
+  variants: {
+    'command-template': {
+      data: [
+        {
+          name: 'Recipe Command',
+          command: '/recipe',
+          description: 'Generate cooking recipes'
+        },
+        {
+          name: 'Code Command',
+          command: '/code',
+          description: 'Generate code snippets'
+        }
+      ],
+      getOutputPath: (context, data, index) =>
+        `commands/${data.command.replace('/', '')}.md`
+    }
+  }
+});
+```
+
+**Generated output:**
+- `dist/commands/recipe.md` with recipe data
+- `dist/commands/code.md` with code data
+
+**Important:** If you mark fields as `$dynamic`, you must provide them via either:
+- The variants API (as shown above)
+- The `onBeforeCompile` hook
+- Both combined (hook values + variant data)
+
+If any `$dynamic` fields remain unresolved, you'll get a clear error message.
 
 ## Output Frontmatter Filtering
 

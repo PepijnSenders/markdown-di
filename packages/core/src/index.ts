@@ -83,9 +83,13 @@ export class MarkdownDI {
   }
 
   /**
-   * Process markdown content with dependency injection
+   * Internal process method with additional flags
+   * @internal - Used by batch processor
    */
-  async process(options: ProcessOptions): Promise<ProcessResult> {
+  private async _processInternal(
+    options: ProcessOptions,
+    skipDynamicCheck: boolean = false
+  ): Promise<ProcessResult> {
     const context: ProcessingContext = {
       baseDir: options.baseDir,
       mode: options.mode || "build",
@@ -129,24 +133,6 @@ export class MarkdownDI {
           dynamicFields,
         });
 
-        // Validate that all $dynamic fields are provided by hook
-        const missingFields: string[] = [];
-        for (const field of dynamicFields) {
-          if (!hookResult || !(field in hookResult)) {
-            missingFields.push(field);
-          }
-        }
-
-        if (missingFields.length > 0) {
-          allErrors.push({
-            type: "schema",
-            message: `Hook must provide these $dynamic fields: ${missingFields.join(
-              ", "
-            )}`,
-            location: "onBeforeCompile",
-          });
-        }
-
         // Remove $dynamic placeholders before merging
         for (const field of dynamicFields) {
           delete frontmatter[field];
@@ -163,15 +149,25 @@ export class MarkdownDI {
           location: "onBeforeCompile",
         });
       }
-    } else if (dynamicFields.length > 0) {
-      // $dynamic fields declared but no hook provided
-      allErrors.push({
-        type: "schema",
-        message: `Fields marked as $dynamic but no onBeforeCompile hook configured: ${dynamicFields.join(
-          ", "
-        )}`,
-        location: "frontmatter",
-      });
+    }
+
+    // After hook execution, validate that all $dynamic fields were provided
+    // Check that fields which were originally $dynamic now have values
+    if (!skipDynamicCheck) {
+      const missingDynamic: string[] = [];
+      for (const field of dynamicFields) {
+        if (!(field in frontmatter) || frontmatter[field] === undefined) {
+          missingDynamic.push(field);
+        }
+      }
+
+      if (missingDynamic.length > 0) {
+        allErrors.push({
+          type: "schema",
+          message: `These $dynamic fields were not provided: ${missingDynamic.join(", ")}. Provide values via onBeforeCompile hook or variants API`,
+          location: "frontmatter",
+        });
+      }
     }
 
     // Schema validation - supports both AJV (JSON Schema) and Zod (legacy)
@@ -263,6 +259,21 @@ export class MarkdownDI {
       errors: allErrors,
       dependencies,
     };
+  }
+
+  /**
+   * Process markdown content with dependency injection
+   */
+  async process(options: ProcessOptions): Promise<ProcessResult> {
+    return this._processInternal(options, false);
+  }
+
+  /**
+   * Internal method for batch processor to extract frontmatter without validating $dynamic fields
+   * @internal - Only for use by BatchProcessor
+   */
+  async _processForBatch(options: ProcessOptions): Promise<ProcessResult> {
+    return this._processInternal(options, true);
   }
 
   /**

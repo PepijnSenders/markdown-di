@@ -631,4 +631,102 @@ name: Check
     // No files should be written in check mode
     expect(existsSync(OUT_DIR)).toBe(false)
   })
+
+  test('variants work with $dynamic fields', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'dynamic.md'),
+      `---
+id: dynamic-template
+name: $dynamic
+command: $dynamic
+description: $dynamic
+---
+# {{name}}
+
+Command: {{command}}
+
+{{description}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      variants: {
+        'dynamic-template': {
+          data: [
+            {
+              name: 'Recipe Command',
+              command: '/recipe',
+              description: 'Generate cooking recipes'
+            },
+            {
+              name: 'Code Command',
+              command: '/code',
+              description: 'Generate code snippets'
+            }
+          ],
+          getOutputPath: (_ctx, data, _idx) => {
+            const slug = (data.name as string).toLowerCase().replace(/\s+/g, '-')
+            return `${slug}.md`
+          }
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.success).toBe(true)
+    expect(result.changedFiles).toBe(2)
+    expect(result.totalErrors).toBe(0)
+
+    // Verify first variant
+    const recipe = await Bun.file(join(OUT_DIR, 'recipe-command.md')).text()
+    expect(recipe).toContain('# Recipe Command')
+    expect(recipe).toContain('Command: /recipe')
+    expect(recipe).toContain('Generate cooking recipes')
+
+    // Verify second variant
+    const code = await Bun.file(join(OUT_DIR, 'code-command.md')).text()
+    expect(code).toContain('# Code Command')
+    expect(code).toContain('Command: /code')
+    expect(code).toContain('Generate code snippets')
+  })
+
+  test('variants with $dynamic fields fails when data not provided', async () => {
+    mkdirSync(join(TEST_DIR, 'templates'), { recursive: true })
+
+    writeFileSync(
+      join(TEST_DIR, 'templates', 'incomplete.md'),
+      `---
+id: incomplete-template
+name: $dynamic
+description: $dynamic
+---
+# {{name}}
+`
+    )
+
+    const processor = new BatchProcessor({
+      baseDir: join(TEST_DIR, 'templates'),
+      outDir: OUT_DIR,
+      variants: {
+        'incomplete-template': {
+          data: [
+            { name: 'Test' } // Missing 'description'
+          ],
+          getOutputPath: () => 'output.md'
+        }
+      }
+    })
+
+    const result = await processor.process()
+
+    expect(result.success).toBe(false)
+    expect(result.totalErrors).toBeGreaterThan(0)
+    expect(result.files[0].errors[0].message).toContain('$dynamic')
+    expect(result.files[0].errors[0].message).toContain('description')
+  })
 })
