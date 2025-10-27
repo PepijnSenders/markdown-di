@@ -35,16 +35,16 @@
     "directory": "packages/core"
   },
   "dependencies": {
-    "@types/mustache": "4.2.6",
-    "ajv": "^8.12.0",
-    "ajv-formats": "^3.0.1",
-    "fast-glob": "^3.3.3",
-    "gray-matter": "^4.0.3",
-    "mustache": "4.2.0",
-    "yaml": "^2.7.0"
+    "@types/mustache": "catalog:",
+    "ajv": "catalog:",
+    "ajv-formats": "catalog:",
+    "fast-glob": "catalog:",
+    "gray-matter": "catalog:",
+    "mustache": "catalog:",
+    "yaml": "catalog:"
   },
   "peerDependencies": {
-    "zod": "^4.1.12"
+    "zod": "catalog:"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -52,7 +52,7 @@
     }
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.9.3"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
   }
 }
