@@ -81,14 +81,14 @@ name: test
 description: Test partials with custom delimiters
 author: John Doe
 partials:
-  header: test/partials/custom-delimiter-header.md
+  header: partials/custom-delimiter-header.md
 ---
 
 <% author %>`;
 
     const result = await mdi.process({
       content,
-      baseDir: process.cwd(),
+      baseDir: import.meta.dir,
       mustache: {
         tags: ["<%", "%>"],
       },
