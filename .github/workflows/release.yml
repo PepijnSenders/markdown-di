@@ -136,7 +136,7 @@ jobs:
         working-directory: ./packages/core
         run: bun publish --access public
         env:
-          npm_config_//registry.npmjs.org/:_authToken: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
