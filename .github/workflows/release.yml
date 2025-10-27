@@ -140,7 +140,7 @@ jobs:
 
       - name: Publish to npm
         working-directory: ./packages/core
-        run: bun publish --access public
+        run: bunx npm publish --access public
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
