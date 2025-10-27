@@ -83,9 +83,13 @@ export class MarkdownDI {
   }
 
   /**
-   * Process markdown content with dependency injection
+   * Internal process method with additional flags
+   * @internal - Used by batch processor
    */
-  async process(options: ProcessOptions): Promise<ProcessResult> {
+  private async _processInternal(
+    options: ProcessOptions,
+    skipDynamicCheck: boolean = false
+  ): Promise<ProcessResult> {
     const context: ProcessingContext = {
       baseDir: options.baseDir,
       mode: options.mode || "build",
@@ -149,7 +153,7 @@ export class MarkdownDI {
 
     // After hook execution, validate that all $dynamic fields were provided
     // Check that fields which were originally $dynamic now have values
-    if (!options._skipDynamicCheck) {
+    if (!skipDynamicCheck) {
       const missingDynamic: string[] = [];
       for (const field of dynamicFields) {
         if (!(field in frontmatter) || frontmatter[field] === undefined) {
@@ -255,6 +259,21 @@ export class MarkdownDI {
       errors: allErrors,
       dependencies,
     };
+  }
+
+  /**
+   * Process markdown content with dependency injection
+   */
+  async process(options: ProcessOptions): Promise<ProcessResult> {
+    return this._processInternal(options, false);
+  }
+
+  /**
+   * Internal method for batch processor to extract frontmatter without validating $dynamic fields
+   * @internal - Only for use by BatchProcessor
+   */
+  async _processForBatch(options: ProcessOptions): Promise<ProcessResult> {
+    return this._processInternal(options, true);
   }
 
   /**

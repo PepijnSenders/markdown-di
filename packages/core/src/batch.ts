@@ -156,14 +156,13 @@ export class BatchProcessor {
 
       // First pass: extract frontmatter to detect if this file has variants configured
       // Skip $dynamic validation on this pass - variants will provide the data on second pass
-      const result = await this.mdi.process({
+      const result = await this.mdi._processForBatch({
         content,
         baseDir,
         currentFile: file,
         mode: "build",
         onBeforeCompile: this.config.onBeforeCompile,
         mustache: this.config.mustache,
-        _skipDynamicCheck: true,
       });
 
       // Check if this file has variants configured
