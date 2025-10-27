@@ -21,7 +21,7 @@ When you merge a PR to `main`:
 2. 📦 **Version bumps** - Based on branch prefix
 3. 📝 **CHANGELOG updates** - Automatically adds entry with PR details
 4. 🏷️ **Git tag created** - Creates version tag (e.g., `v0.9.0`)
-5. 📤 **Publishes to npm** - Using bun publish
+5. 📤 **Publishes to npm** - Using npm publish
 6. 🎉 **GitHub Release created** - With PR details
 
 ### 3. Example Workflow
