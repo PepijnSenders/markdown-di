@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.10] - 2025-10-27
+
+### Changed
+- fix: create .npmrc in packages/core directory for bun publish ([#13](https://github.com/PepijnSenders/markdown-di/pull/13)) by @PepijnSenders
+
+
 ## [0.9.9] - 2025-10-27
 
 ### Changed
