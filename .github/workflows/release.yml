@@ -143,13 +143,7 @@ jobs:
 
       - name: Publish to npm
         working-directory: ./packages/core
-        run: |
-          # Verify npm auth works
-          npm whoami
-          # Use bun pack to resolve catalog references and create tarball
-          bun pack
-          # Publish the tarball with npm (which has working authentication)
-          npm publish *.tgz --access public
+        run: npm publish --access public
 
       - name: Create GitHub Release
         uses: actions/create-release@v1

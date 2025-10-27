@@ -10,6 +10,6 @@
     "@markdown-di/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/bun": "catalog:"
+    "@types/bun": "^1.1.17"
   }
 }

@@ -6,22 +6,6 @@
   "workspaces": [
     "packages/*"
   ],
-  "catalog": {
-    "@biomejs/biome": "2.3.0",
-    "@types/bun": "latest",
-    "@types/mustache": "4.2.6",
-    "@types/node": "^20.0.0",
-    "ajv": "^8.12.0",
-    "ajv-formats": "^3.0.1",
-    "chalk": "^5.3.0",
-    "commander": "^12.0.0",
-    "fast-glob": "^3.3.3",
-    "gray-matter": "^4.0.3",
-    "mustache": "4.2.0",
-    "typescript": "^5.9.3",
-    "yaml": "^2.7.0",
-    "zod": "^4.1.12"
-  },
   "scripts": {
     "build": "bun run --cwd packages/core build && bun run --filter './packages/*' --filter '!@markdown-di/core' build",
     "test": "bun test",
@@ -47,9 +31,9 @@
     "url": "https://github.com/PepijnSenders/markdown-di.git"
   },
   "devDependencies": {
-    "@biomejs/biome": "catalog:",
-    "@types/bun": "catalog:",
-    "zod": "catalog:",
-    "typescript": "catalog:"
+    "@biomejs/biome": "2.3.0",
+    "@types/bun": "latest",
+    "zod": "^4.1.12",
+    "typescript": "^5.9.3"
   }
 }
