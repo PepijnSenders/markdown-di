@@ -270,6 +270,69 @@ output-frontmatter:
 
 **Note:** HTML escaping is disabled by default since markdown-di works with markdown content, not HTML. All template variables (`{{var}}`) are inserted as-is without escaping special characters.
 
+### Custom Delimiters
+
+You can customize the Mustache template delimiters (default is `{{` and `}}`). This is useful when working with content that already uses the default delimiters or when you prefer alternative syntax.
+
+#### Using with CLI
+
+Add to your `.markdown-di.json` config file:
+
+```json
+{
+  "schemas": {},
+  "mustache": {
+    "tags": ["<%", "%>"]
+  }
+}
+```
+
+Then use the custom delimiters in your markdown:
+
+```markdown
+---
+name: Example
+author: John Doe
+---
+
+# <% name %>
+
+By <% author %>
+```
+
+#### Using Programmatically
+
+```typescript
+import { MarkdownDI } from '@markdown-di/core';
+
+const mdi = new MarkdownDI();
+
+const result = await mdi.process({
+  content: markdownContent,
+  baseDir: './docs',
+  mustache: {
+    tags: ['<%', '%>']
+  }
+});
+```
+
+#### With Batch Processing
+
+```typescript
+import { BatchProcessor } from '@markdown-di/core';
+
+const processor = new BatchProcessor({
+  baseDir: './docs',
+  mustache: {
+    tags: ['<%', '%>']
+  }
+});
+
+await processor.process();
+```
+
+**Note:** Custom delimiters work with all Mustache features including variables, sections, conditionals, and partials.
+
 ### Variables
 
 Access any frontmatter field as a variable:
@@ -802,9 +865,17 @@ The CLI looks for config files in this order:
         "field2": { "type": "number" }
       }
     }
+  },
+  "mustache": {
+    "tags": ["<%", "%>"]
   }
 }
 ```
+
+**Config options:**
+- `schemas` - JSON Schema definitions for frontmatter validation
+- `mustache` - Optional Mustache template engine configuration
+  - `tags` - Custom delimiters (default: `["{{", "}}"]`)
 
 The config file uses standard [JSON Schema](https://json-schema.org/) format with support for:
 - Type validation (`string`, `number`, `boolean`, `array`, `object`, `null`)
@@ -849,8 +920,13 @@ interface BatchConfig {
   schemas?: Record<string, z.ZodObject<any>>;  // Schema registry
   onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
   variants?: Record<string, VariantGenerator>;  // Multi-variant generation config
+  mustache?: MustacheConfig;     // Custom Mustache template engine configuration
   check?: boolean;               // Check mode - don't write files (default: false)
   silent?: boolean;              // Suppress console output (default: false)
+}
+
+interface MustacheConfig {
+  tags?: [string, string];       // Custom delimiters (default: ['{{', '}}'])
 }
 
 interface VariantGenerator {
@@ -919,6 +995,7 @@ interface ProcessOptions {
   mode?: 'validate' | 'build';  // Processing mode (default: 'build')
   currentFile?: string;         // Current file path (for circular detection)
   onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  mustache?: MustacheConfig;    // Custom Mustache template engine configuration
 }
 ```
 
@@ -1171,7 +1248,8 @@ import type {
   ProcessResult,
   ValidationError,
   FrontmatterData,
-  HookContext
+  HookContext,
+  MustacheConfig
 } from '@markdown-di/core';
 ```
 
