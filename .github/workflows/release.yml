@@ -134,9 +134,13 @@ jobs:
 
       - name: Publish to npm
         working-directory: ./packages/core
-        run: bun publish --access public
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Create .npmrc in current directory
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+          # Publish
+          bun publish --access public
+          # Clean up
+          rm .npmrc
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
