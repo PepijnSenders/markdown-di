@@ -91,6 +91,7 @@ export class MarkdownDI {
       mode: options.mode || "build",
       visitedFiles: new Set(),
       currentFile: options.currentFile,
+      mustache: options.mustache,
     };
 
     // Extract and validate frontmatter
@@ -230,7 +231,12 @@ export class MarkdownDI {
     const circularDetector = new CircularDependencyDetector();
 
     // Process content
-    const processor = new ContentProcessor(resolver, circularDetector, this.frontmatterProcessor);
+    const processor = new ContentProcessor(
+      resolver,
+      circularDetector,
+      this.frontmatterProcessor,
+      context.mustache
+    );
     const {
       processedContent,
       errors: processingErrors,

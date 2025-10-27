@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import type { MustacheConfig } from './types'
 
 export interface MarkdownDIConfig {
   schemas: Record<string, any> // JSON Schema objects
+  mustache?: MustacheConfig
 }
 
 /**
@@ -59,6 +61,21 @@ export class ConfigLoader {
       // Validate basic structure
       if (!parsed.schemas || typeof parsed.schemas !== 'object') {
         throw new Error('Config must have a "schemas" object')
+      }
+
+      // Validate mustache config if present
+      if (parsed.mustache) {
+        if (typeof parsed.mustache !== 'object') {
+          throw new Error('Config "mustache" field must be an object')
+        }
+        if (parsed.mustache.tags) {
+          if (!Array.isArray(parsed.mustache.tags) || parsed.mustache.tags.length !== 2) {
+            throw new Error('Config "mustache.tags" must be an array with exactly 2 strings')
+          }
+          if (typeof parsed.mustache.tags[0] !== 'string' || typeof parsed.mustache.tags[1] !== 'string') {
+            throw new Error('Config "mustache.tags" elements must be strings')
+          }
+        }
       }
 
       return parsed as MarkdownDIConfig

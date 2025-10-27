@@ -9,6 +9,18 @@ export interface ValidationError {
 }
 
 /**
+ * Mustache template engine configuration
+ */
+export interface MustacheConfig {
+  /**
+   * Custom delimiters for template tags
+   * Default is ['{{', '}}']
+   * @example ['<%', '%>']
+   */
+  tags?: [string, string]
+}
+
+/**
  * Hook context passed to onBeforeCompile callback
  */
 export interface HookContext {
@@ -59,6 +71,11 @@ export interface ProcessOptions {
    * Used to generate multiple output files from a single template
    */
   variants?: Record<string, VariantGenerator>
+  /**
+   * Mustache template engine configuration
+   * Allows customization of Mustache behavior like custom delimiters
+   */
+  mustache?: MustacheConfig
 }
 
 /**
@@ -108,4 +125,8 @@ export interface ProcessingContext {
    * via $parent or $parent('key') syntax
    */
   parentContext?: Record<string, unknown>
+  /**
+   * Mustache template engine configuration
+   */
+  mustache?: MustacheConfig
 }
