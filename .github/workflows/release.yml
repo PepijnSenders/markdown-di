@@ -146,8 +146,10 @@ jobs:
         run: |
           # Verify npm auth works
           npm whoami
-          # Publish with bun
-          bun publish --access public
+          # Use bun pack to resolve catalog references and create tarball
+          bun pack
+          # Publish the tarball with npm (which has working authentication)
+          npm publish *.tgz --access public
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
