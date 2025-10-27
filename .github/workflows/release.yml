@@ -132,15 +132,22 @@ jobs:
           git tag "v${{ steps.bump.outputs.version }}" -m "Release v${{ steps.bump.outputs.version }}"
           git push origin "v${{ steps.bump.outputs.version }}"
 
+      - name: Setup npm authentication
+        run: |
+          # Create .npmrc in home directory with proper npm config
+          cat > ~/.npmrc << EOF
+          //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+          registry=https://registry.npmjs.org/
+          always-auth=true
+          EOF
+
       - name: Publish to npm
         working-directory: ./packages/core
         run: |
-          # Create .npmrc in current directory
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-          # Publish
+          # Verify npm auth works
+          npm whoami
+          # Publish with bun
           bun publish --access public
-          # Clean up
-          rm .npmrc
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
