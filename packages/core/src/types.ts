@@ -76,6 +76,12 @@ export interface ProcessOptions {
    * Allows customization of Mustache behavior like custom delimiters
    */
   mustache?: MustacheConfig
+  /**
+   * Skip validation of $dynamic fields
+   * Used internally by batch processor on first pass to detect variants
+   * @internal
+   */
+  _skipDynamicCheck?: boolean
 }
 
 /**

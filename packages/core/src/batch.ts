@@ -154,7 +154,8 @@ export class BatchProcessor {
       const content = readFileSync(file, "utf-8");
       const relativePath = relative(baseDir, file);
 
-      // First, do a quick parse to get the frontmatter and check for variants
+      // First pass: extract frontmatter to detect if this file has variants configured
+      // Skip $dynamic validation on this pass - variants will provide the data on second pass
       const result = await this.mdi.process({
         content,
         baseDir,
@@ -162,6 +163,7 @@ export class BatchProcessor {
         mode: "build",
         onBeforeCompile: this.config.onBeforeCompile,
         mustache: this.config.mustache,
+        _skipDynamicCheck: true,
       });
 
       // Check if this file has variants configured

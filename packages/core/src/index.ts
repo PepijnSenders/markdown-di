@@ -129,24 +129,6 @@ export class MarkdownDI {
           dynamicFields,
         });
 
-        // Validate that all $dynamic fields are provided by hook
-        const missingFields: string[] = [];
-        for (const field of dynamicFields) {
-          if (!hookResult || !(field in hookResult)) {
-            missingFields.push(field);
-          }
-        }
-
-        if (missingFields.length > 0) {
-          allErrors.push({
-            type: "schema",
-            message: `Hook must provide these $dynamic fields: ${missingFields.join(
-              ", "
-            )}`,
-            location: "onBeforeCompile",
-          });
-        }
-
         // Remove $dynamic placeholders before merging
         for (const field of dynamicFields) {
           delete frontmatter[field];
@@ -163,15 +145,25 @@ export class MarkdownDI {
           location: "onBeforeCompile",
         });
       }
-    } else if (dynamicFields.length > 0) {
-      // $dynamic fields declared but no hook provided
-      allErrors.push({
-        type: "schema",
-        message: `Fields marked as $dynamic but no onBeforeCompile hook configured: ${dynamicFields.join(
-          ", "
-        )}`,
-        location: "frontmatter",
-      });
+    }
+
+    // After hook execution, validate that all $dynamic fields were provided
+    // Check that fields which were originally $dynamic now have values
+    if (!options._skipDynamicCheck) {
+      const missingDynamic: string[] = [];
+      for (const field of dynamicFields) {
+        if (!(field in frontmatter) || frontmatter[field] === undefined) {
+          missingDynamic.push(field);
+        }
+      }
+
+      if (missingDynamic.length > 0) {
+        allErrors.push({
+          type: "schema",
+          message: `These $dynamic fields were not provided: ${missingDynamic.join(", ")}. Provide values via onBeforeCompile hook or variants API`,
+          location: "frontmatter",
+        });
+      }
     }
 
     // Schema validation - supports both AJV (JSON Schema) and Zod (legacy)
