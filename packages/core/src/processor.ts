@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { isDynamicPattern } from 'fast-glob'
 import matter from 'gray-matter'
 import Mustache from 'mustache'
+import { parse as parseYaml } from 'yaml'
 import type { CircularDependencyDetector, DependencyResolver } from './resolver'
 import type { FrontmatterData, MustacheConfig, ProcessingContext, ValidationError } from './types'
 
@@ -339,10 +340,7 @@ export class FrontmatterProcessor {
       // Configure to avoid HTML entity encoding
       const parsed = matter(content, {
         engines: {
-          yaml: (input: string) => {
-            const yaml = require('yaml');
-            return yaml.parse(input);
-          }
+          yaml: (input: string) => parseYaml(input)
         }
       })
 

@@ -1,0 +1,228 @@
+# markdown-di
+
+Type-safe Mustache templating for markdown with schema validation.
+
+## Overview
+
+markdown-di is a parser-agnostic dependency injection system for markdown files using frontmatter. It provides Mustache templating, file injection, and bring-your-own validation (Zod, Yup, Ajv, etc.).
+
+## Key Features
+
+- Custom validation via validateFrontmatter callback
+- Mustache templating (variables, loops, conditionals)
+- File injection with {{partials.xxx}}
+- Glob pattern support (guides/*.md)
+- Path traversal protection
+- Circular dependency detection
+- Dynamic fields with $dynamic keyword
+- Multi-variant generation (one template → many outputs)
+- Batch processing for entire directories
+
+## Quick Start
+
+### Installation
+
+```bash
+npm install @markdown-di/core
+# or for CLI
+npm install -g @markdown-di/cli
+```
+
+### Basic Usage
+
+```typescript
+import { BatchProcessor } from '@markdown-di/core';
+import { z } from 'zod';
+
+const schemas = {
+  'blog-post': z.object({
+    author: z.string(),
+    tags: z.array(z.string())
+  })
+};
+
+const processor = new BatchProcessor({
+  baseDir: './docs',
+  validateFrontmatter: (frontmatter, schemaName) => {
+    if (!schemaName || !schemas[schemaName]) {
+      return { valid: true, errors: [] };
+    }
+
+    const result = schemas[schemaName].safeParse(frontmatter);
+    if (result.success) {
+      return { valid: true, errors: [], data: result.data };
+    }
+
+    return {
+      valid: false,
+      errors: result.error.issues.map(issue => ({
+        type: 'schema',
+        message: issue.message,
+        location: issue.path.join('.') || 'root'
+      }))
+    };
+  }
+});
+
+await processor.process();
+```
+
+### Markdown Example
+
+```markdown
+---
+schema: blog-post
+name: Getting Started
+author: Jane Doe
+tags: [tutorial, beginners]
+partials:
+  footer: common/footer.md
+---
+
+# {{name}}
+
+By {{author}}
+
+{{#tags}}
+- {{.}}
+{{/tags}}
+
+{{partials.footer}}
+```
+
+## Validation
+
+Users provide their own validation via the `validateFrontmatter` callback. This callback receives the frontmatter data and optional schema name, and returns a validation result.
+
+### Validation Result Interface
+
+```typescript
+interface SchemaValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  data?: unknown; // Optional transformed data
+}
+```
+
+### Supported Libraries
+
+- **Zod**: Full TypeScript inference
+- **Yup**: Schema-based validation
+- **Ajv**: JSON Schema validation
+- **Any validation library**: Bring your own
+
+## API
+
+### MarkdownDI.process()
+
+```typescript
+interface ProcessOptions {
+  content: string;
+  baseDir: string;
+  mode?: 'validate' | 'build';
+  currentFile?: string;
+  validateFrontmatter?: (frontmatter, schemaName?) => SchemaValidationResult;
+  onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>>;
+  variants?: Record<string, VariantGenerator>;
+  mustache?: MustacheConfig;
+}
+```
+
+### BatchProcessor
+
+```typescript
+interface BatchConfig {
+  baseDir: string;
+  include?: string[]; // Default: ['**/*.md']
+  exclude?: string[]; // Default: ['node_modules/**', '.git/**']
+  outDir?: string;
+  validateFrontmatter?: (frontmatter, schemaName?) => SchemaValidationResult;
+  onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>>;
+  variants?: Record<string, VariantGenerator>;
+  mustache?: MustacheConfig;
+  check?: boolean;
+  silent?: boolean;
+}
+```
+
+## Frontmatter Schema
+
+Required field:
+- `name`: string
+
+Optional fields:
+- `schema`: string (references validation schema)
+- `partials`: Record<string, string | string[]> (file injection)
+- `output-frontmatter`: string[] (control output fields)
+- `id`: string (auto-generated if not provided)
+
+## Partials (File Injection)
+
+```yaml
+partials:
+  single: path/to/file.md
+  glob: path/to/*.md
+  multi:
+    - path/to/file1.md
+    - path/to/*.md
+```
+
+Use in content: `{{partials.single}}`
+
+## Dynamic Fields
+
+Mark fields as `$dynamic` to require runtime data:
+
+```yaml
+---
+name: Documentation
+buildTime: $dynamic
+version: $dynamic
+---
+
+Built at {{buildTime}}
+Version: {{version}}
+```
+
+Provide data via `onBeforeCompile` hook or `variants` API.
+
+## Multi-Variant Generation
+
+Generate multiple files from one template:
+
+```typescript
+const processor = new BatchProcessor({
+  baseDir: './templates',
+  outDir: './dist',
+  variants: {
+    'product-template': {
+      data: [
+        { product: 'Widget A', price: '$10' },
+        { product: 'Widget B', price: '$20' }
+      ],
+      getOutputPath: (context, data, index) => {
+        const slug = data.product.toLowerCase().replace(/\s+/g, '-');
+        return `products/${slug}.md`;
+      }
+    }
+  }
+});
+```
+
+## Security
+
+- Path traversal protection (blocks `../`)
+- Circular dependency detection
+- Secure partial resolution within baseDir
+
+## Use Cases
+
+- Documentation sites with validated frontmatter
+- Content workflows with consistent schemas
+- AI/Agent systems validating generated markdown
+- API documentation with type-safe schemas
+- Static site generators with pre-processing
+
+## License
+
+MIT

@@ -13,7 +13,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LLMS.txt"
   ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && tsc --emitDeclarationOnly",
@@ -38,7 +40,8 @@
     "@types/mustache": "4.2.6",
     "fast-glob": "^3.3.3",
     "gray-matter": "^4.0.3",
-    "mustache": "4.2.0"
+    "mustache": "4.2.0",
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
