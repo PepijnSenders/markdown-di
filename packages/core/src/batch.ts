@@ -3,13 +3,12 @@ import { dirname, join, relative, resolve } from "node:path";
 import { globSync } from "fast-glob";
 import type { ProcessOptions, ValidationError, VariantGenerator } from "./types";
 import { MarkdownDI } from "./index";
-import { z } from "zod";
 
 /**
  * Batch processing configuration
  * Extends ProcessOptions with batch-specific options
  */
-export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeCompile' | 'variants' | 'mustache'> {
+export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeCompile' | 'variants' | 'mustache' | 'validateFrontmatter'> {
   /**
    * Glob patterns to match markdown files
    * @default ['**\/*.md']
@@ -27,12 +26,6 @@ export interface BatchConfig extends Pick<ProcessOptions, 'baseDir' | 'onBeforeC
    * If not provided, files are updated in place
    */
   outDir?: string;
-
-  /**
-   * Registered schemas for frontmatter validation
-   * Key is the schema name (matches frontmatter.schema field)
-   */
-  schemas?: Record<string, z.ZodObject<any>>;
 
   /**
    * Check mode - returns results without writing files
@@ -92,12 +85,13 @@ export interface BatchResult {
 export class BatchProcessor {
   private mdi: MarkdownDI;
   private config: Required<
-    Omit<BatchConfig, "schemas" | "onBeforeCompile" | "outDir" | "variants" | "mustache">
+    Omit<BatchConfig, "onBeforeCompile" | "outDir" | "variants" | "mustache" | "validateFrontmatter">
   > & {
     outDir?: string;
     onBeforeCompile?: BatchConfig["onBeforeCompile"];
     variants?: BatchConfig["variants"];
     mustache?: BatchConfig["mustache"];
+    validateFrontmatter?: BatchConfig["validateFrontmatter"];
   };
 
   constructor(config: BatchConfig) {
@@ -112,12 +106,8 @@ export class BatchProcessor {
       onBeforeCompile: config.onBeforeCompile,
       variants: config.variants,
       mustache: config.mustache,
+      validateFrontmatter: config.validateFrontmatter,
     };
-
-    // Register schemas if provided
-    if (config.schemas) {
-      this.mdi.registerSchemas(config.schemas);
-    }
   }
 
   /**
@@ -163,6 +153,7 @@ export class BatchProcessor {
         mode: "build",
         onBeforeCompile: this.config.onBeforeCompile,
         mustache: this.config.mustache,
+        validateFrontmatter: this.config.validateFrontmatter,
       });
 
       // Check if this file has variants configured
@@ -188,6 +179,7 @@ export class BatchProcessor {
               return { ...baseData, ...variantData };
             },
             mustache: this.config.mustache,
+            validateFrontmatter: this.config.validateFrontmatter,
           });
 
           const variantChanged = variantResult.content !== content;
@@ -306,17 +298,4 @@ export class BatchProcessor {
     }
   }
 
-  /**
-   * Register a schema for validation
-   */
-  registerSchema(name: string, schema: z.ZodObject<any>): void {
-    this.mdi.registerSchema(name, schema);
-  }
-
-  /**
-   * Register multiple schemas
-   */
-  registerSchemas(schemas: Record<string, z.ZodObject<any>>): void {
-    this.mdi.registerSchemas(schemas);
-  }
 }

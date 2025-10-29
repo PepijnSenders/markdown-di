@@ -1,9 +1,6 @@
 import matter from "gray-matter";
 import { ContentProcessor, FrontmatterProcessor } from "./processor";
 import { CircularDependencyDetector, DependencyResolver } from "./resolver";
-import { SchemaValidator } from "./schema";
-import { AjvSchemaValidator } from "./ajv-schema";
-import { ConfigLoader } from "./config-loader";
 import type {
   FrontmatterData,
   ProcessingContext,
@@ -12,7 +9,6 @@ import type {
 } from "./types";
 import { deepMerge, generateFileId } from "./utils";
 import { PartialValidator } from "./validator";
-import { z } from "zod";
 
 /**
  * Main class for markdown dependency injection
@@ -20,67 +16,6 @@ import { z } from "zod";
 export class MarkdownDI {
   private partialValidator = new PartialValidator();
   private frontmatterProcessor = new FrontmatterProcessor();
-  private schemaRegistry = new Map<string, z.ZodObject<any>>();
-  private ajvValidator = new AjvSchemaValidator();
-  private configLoader = new ConfigLoader();
-
-  /**
-   * Register a Zod schema by name (programmatic API)
-   * Note: For CLI usage, prefer JSON Schema with loadConfigSchemas()
-   */
-  registerSchema(name: string, schema: z.ZodObject<any>): void {
-    this.schemaRegistry.set(name, schema);
-  }
-
-  /**
-   * Register multiple Zod schemas (programmatic API)
-   * Note: For CLI usage, prefer JSON Schema with loadConfigSchemas()
-   */
-  registerSchemas(schemas: Record<string, z.ZodObject<any>>): void {
-    Object.entries(schemas).forEach(([name, schema]) => {
-      this.registerSchema(name, schema);
-    });
-  }
-
-  /**
-   * Get a registered Zod schema by name
-   */
-  getSchema(name: string): z.ZodObject<any> | undefined {
-    return this.schemaRegistry.get(name);
-  }
-
-  /**
-   * Load schemas from JSON Schema config file
-   * This is the recommended way to use schema validation
-   * @param configPath - Optional explicit path to config file
-   * @param startDir - Directory to start searching for config (defaults to cwd)
-   */
-  loadConfigSchemas(configPath?: string, startDir?: string): void {
-    const dir = startDir || process.cwd();
-    const config = this.configLoader.loadConfigAuto(dir, configPath);
-
-    if (!config) {
-      throw new Error(
-        'No config file found. Create .markdown-di.json with schemas.'
-      );
-    }
-
-    this.ajvValidator.loadSchemas(config.schemas);
-  }
-
-  /**
-   * Register JSON Schema directly (programmatic API)
-   */
-  registerJsonSchema(name: string, jsonSchema: any): void {
-    this.ajvValidator.registerSchema(name, jsonSchema);
-  }
-
-  /**
-   * Register multiple JSON Schemas (programmatic API)
-   */
-  registerJsonSchemas(schemas: Record<string, any>): void {
-    this.ajvValidator.loadSchemas(schemas);
-  }
 
   /**
    * Internal process method with additional flags
@@ -170,51 +105,16 @@ export class MarkdownDI {
       }
     }
 
-    // Schema validation - supports both AJV (JSON Schema) and Zod (legacy)
-    if (frontmatter.schema) {
-      if (typeof frontmatter.schema === "string") {
-        // Named schema reference
-        // Try AJV first (new way), fallback to Zod (legacy)
-        const ajvResult = this.ajvValidator.validate(frontmatter, frontmatter.schema);
+    // Schema validation using custom validateFrontmatter callback
+    if (frontmatter.schema && options.validateFrontmatter) {
+      const schemaName = typeof frontmatter.schema === "string" ? frontmatter.schema : undefined;
+      const validationResult = await options.validateFrontmatter(frontmatter, schemaName);
 
-        if (!ajvResult.valid) {
-          // Check if it's a "not found" error, then try Zod
-          const notFound = ajvResult.errors.some(e => e.message.includes('not found'));
-
-          if (notFound) {
-            // Try Zod as fallback
-            const registeredSchema = this.getSchema(frontmatter.schema);
-
-            if (!registeredSchema) {
-              // Neither AJV nor Zod have this schema
-              allErrors.push(...ajvResult.errors);
-            } else {
-              // Use Zod (legacy path)
-              const schemaValidator = new SchemaValidator({
-                schema: registeredSchema,
-                extend: true,
-              });
-              const schemaResult = schemaValidator.validate(frontmatter);
-
-              if (!schemaResult.valid) {
-                allErrors.push(...schemaResult.errors);
-              } else {
-                // Update frontmatter with validated/transformed data
-                frontmatter = schemaResult.data as FrontmatterData;
-              }
-            }
-          } else {
-            // AJV validation failed (not a "not found" error)
-            allErrors.push(...ajvResult.errors);
-          }
-        }
-      } else if (typeof frontmatter.schema === "object") {
-        // Inline JSON Schema object
-        const ajvResult = this.ajvValidator.validate(frontmatter, frontmatter.schema);
-
-        if (!ajvResult.valid) {
-          allErrors.push(...ajvResult.errors);
-        }
+      if (!validationResult.valid) {
+        allErrors.push(...validationResult.errors);
+      } else if (validationResult.data) {
+        // Update frontmatter with validated/transformed data
+        frontmatter = validationResult.data as FrontmatterData;
       }
     }
 
@@ -323,11 +223,7 @@ export class MarkdownDI {
 export * from "./batch";
 export * from "./processor";
 export * from "./resolver";
-export * from "./ajv-schema";
-export * from "./config-loader";
 // Export types and classes
 export * from "./types";
 export * from "./utils";
 export * from "./validator";
-
-export { z };

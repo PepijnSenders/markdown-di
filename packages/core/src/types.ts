@@ -56,6 +56,15 @@ export interface VariantGenerator {
 }
 
 /**
+ * Schema validation result from custom validator
+ */
+export interface SchemaValidationResult {
+  valid: boolean
+  errors: ValidationError[]
+  data?: unknown
+}
+
+/**
  * Processing options
  */
 export interface ProcessOptions {
@@ -66,6 +75,17 @@ export interface ProcessOptions {
   onBeforeCompile?: (
     context: HookContext,
   ) => Promise<Record<string, unknown>> | Record<string, unknown>
+  /**
+   * Custom validation function for frontmatter
+   * This allows users to provide their own validation logic with any validation library
+   * @param frontmatter - The frontmatter data to validate
+   * @param schemaName - The schema name from frontmatter.schema (if it's a string reference)
+   * @returns Validation result with errors if invalid
+   */
+  validateFrontmatter?: (
+    frontmatter: FrontmatterData,
+    schemaName?: string
+  ) => SchemaValidationResult | Promise<SchemaValidationResult>
   /**
    * Variant generators mapped by file ID
    * Used to generate multiple output files from a single template

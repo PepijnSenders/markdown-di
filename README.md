@@ -18,19 +18,41 @@ authenticated: "yes"      ❌ Should be boolean
 
 ## The Solution
 
-**Define schemas once**, validate all documents at build time:
+**Define validation**, validate all documents at build time:
 
 ```typescript
-import { BatchProcessor, z } from '@markdown-di/core';
+import { BatchProcessor } from '@markdown-di/core';
+import { z } from 'zod';
+
+// Define your schemas with any validation library (Zod, Yup, etc.)
+const schemas = {
+  'blog-post': z.object({
+    author: z.string(),
+    publishedAt: z.string().datetime(),
+    tags: z.array(z.string())
+  })
+};
 
 const processor = new BatchProcessor({
   baseDir: './docs',
-  schemas: {
-    'blog-post': z.object({
-      author: z.string(),
-      publishedAt: z.string().datetime(),
-      tags: z.array(z.string())
-    })
+  validateFrontmatter: (frontmatter, schemaName) => {
+    if (!schemaName || !schemas[schemaName]) {
+      return { valid: true, errors: [] };
+    }
+
+    const result = schemas[schemaName].safeParse(frontmatter);
+    if (result.success) {
+      return { valid: true, errors: [], data: result.data };
+    }
+
+    return {
+      valid: false,
+      errors: result.error.issues.map(issue => ({
+        type: 'schema',
+        message: issue.message,
+        location: issue.path.join('.') || 'root'
+      }))
+    };
   }
 });
 
@@ -74,7 +96,7 @@ docs/getting-started.md:
 
 ## Features
 
-- ✅ **Schema validation** - JSON Schema (CLI) or Zod (programmatic API)
+- ✅ **Schema validation** - Bring your own validation library (Zod, Yup, Ajv, etc.)
 - ✅ **CLI tool** - Validate and build markdown files from the command line
 - ✅ **Mustache templating** - Variables, loops, conditionals
 - ✅ **File injection** - Include external files with `{{partials.xxx}}`
@@ -179,19 +201,41 @@ The CLI will:
 Process multiple markdown files with a simple API:
 
 ```typescript
-import { BatchProcessor, z } from '@markdown-di/core';
+import { BatchProcessor } from '@markdown-di/core';
+import { z } from 'zod';
+
+// Define your schemas
+const schemas = {
+  'blog-post': z.object({
+    author: z.string(),
+    publishedAt: z.string().datetime(),
+    tags: z.array(z.string())
+  })
+};
 
 const processor = new BatchProcessor({
   baseDir: './docs',
   include: ['**/*.md'],
   exclude: ['node_modules/**'],
   outDir: './dist', // Optional: output to different directory
-  schemas: {
-    'blog-post': z.object({
-      author: z.string(),
-      publishedAt: z.string().datetime(),
-      tags: z.array(z.string())
-    })
+  validateFrontmatter: (frontmatter, schemaName) => {
+    if (!schemaName || !schemas[schemaName]) {
+      return { valid: true, errors: [] };
+    }
+
+    const result = schemas[schemaName].safeParse(frontmatter);
+    if (result.success) {
+      return { valid: true, errors: [], data: result.data };
+    }
+
+    return {
+      valid: false,
+      errors: result.error.issues.map(issue => ({
+        type: 'schema',
+        message: issue.message,
+        location: issue.path.join('.') || 'root'
+      }))
+    };
   }
 });
 
@@ -210,20 +254,42 @@ console.log(`✓ Processed ${result.totalFiles} files`);
 For processing individual files:
 
 ```typescript
-import { MarkdownDI, z } from '@markdown-di/core';
+import { MarkdownDI } from '@markdown-di/core';
+import { z } from 'zod';
 
 const mdi = new MarkdownDI();
 
-mdi.registerSchema('blog-post', z.object({
-  author: z.string(),
-  publishedAt: z.string().datetime(),
-  tags: z.array(z.string())
-}));
+const schemas = {
+  'blog-post': z.object({
+    author: z.string(),
+    publishedAt: z.string().datetime(),
+    tags: z.array(z.string())
+  })
+};
 
 const result = await mdi.process({
   content: markdownContent,
   baseDir: './docs',
-  currentFile: './docs/post.md'
+  currentFile: './docs/post.md',
+  validateFrontmatter: (frontmatter, schemaName) => {
+    if (!schemaName || !schemas[schemaName]) {
+      return { valid: true, errors: [] };
+    }
+
+    const result = schemas[schemaName].safeParse(frontmatter);
+    if (result.success) {
+      return { valid: true, errors: [], data: result.data };
+    }
+
+    return {
+      valid: false,
+      errors: result.error.issues.map(issue => ({
+        type: 'schema',
+        message: issue.message,
+        location: issue.path.join('.') || 'root'
+      }))
+    };
+  }
 });
 
 if (result.errors.length > 0) {
@@ -563,100 +629,150 @@ All nested partials have access to the parent document's variables (`author`, `t
 
 ## Schema Validation
 
-### JSON Schema (CLI & Programmatic)
+markdown-di lets you bring your own validation library. Use Zod, Yup, Ajv, or any other validation library by providing a `validateFrontmatter` callback.
 
-JSON Schema is the recommended format for most users. It's a W3C standard that's widely supported and portable.
-
-#### Using with CLI
-
-Create a `.markdown-di.json` config file:
-
-```json
-{
-  "schemas": {
-    "blog-post": {
-      "type": "object",
-      "required": ["author", "date"],
-      "properties": {
-        "author": { "type": "string", "minLength": 1 },
-        "date": { "type": "string", "format": "date" },
-        "tags": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    }
-  }
-}
-```
-
-Then run the CLI:
-
-```bash
-npx @markdown-di/cli validate docs/
-npx @markdown-di/cli build docs/ --output dist/
-```
-
-#### Using Programmatically (JSON Schema)
+### Using with Zod
 
 ```typescript
 import { MarkdownDI } from '@markdown-di/core';
+import { z } from 'zod';
 
-const mdi = new MarkdownDI();
+const schemas = {
+  'blog-post': z.object({
+    author: z.string(),
+    publishedAt: z.string().datetime(),
+    tags: z.array(z.string())
+  })
+};
 
-// Load schemas from config file (auto-discovery)
-mdi.loadConfigSchemas();
+const result = await mdi.process({
+  content: markdownContent,
+  baseDir: './docs',
+  validateFrontmatter: (frontmatter, schemaName) => {
+    if (!schemaName || !schemas[schemaName]) {
+      return { valid: true, errors: [] };
+    }
 
-// Or load from explicit path
-mdi.loadConfigSchemas('./my-config.json');
+    const result = schemas[schemaName].safeParse(frontmatter);
+    if (result.success) {
+      return { valid: true, errors: [], data: result.data };
+    }
 
-// Or register schemas directly
-mdi.registerJsonSchema('blog-post', {
-  type: 'object',
-  required: ['author', 'date'],
-  properties: {
-    author: { type: 'string' },
-    date: { type: 'string', format: 'date' }
+    return {
+      valid: false,
+      errors: result.error.issues.map(issue => ({
+        type: 'schema',
+        message: issue.message,
+        location: issue.path.join('.') || 'root'
+      }))
+    };
   }
-});
-
-// Register multiple schemas
-mdi.registerJsonSchemas({
-  'blog-post': { /* schema */ },
-  'api-doc': { /* schema */ }
 });
 ```
 
-### Zod Schemas (Programmatic Only)
-
-For TypeScript projects that want strong type inference, you can use Zod schemas programmatically:
-
-#### Registering Zod Schemas
-
-Register schemas once, then reference them in frontmatter:
+### Using with Ajv (JSON Schema)
 
 ```typescript
-import { MarkdownDI, z } from '@markdown-di/core';
+import { MarkdownDI } from '@markdown-di/core';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
-const mdi = new MarkdownDI();
+const ajv = new Ajv();
+addFormats(ajv);
 
-// Register a schema
-mdi.registerSchema('blog-post', z.object({
-  author: z.string(),
-  publishedAt: z.string().datetime(),
-  tags: z.array(z.string())
-}));
+const schemas = {
+  'blog-post': {
+    type: 'object',
+    required: ['author', 'date'],
+    properties: {
+      author: { type: 'string', minLength: 1 },
+      date: { type: 'string', format: 'date' },
+      tags: { type: 'array', items: { type: 'string' } }
+    }
+  }
+};
 
-// Register multiple schemas
-mdi.registerSchemas({
-  'api-doc': z.object({
-    endpoint: z.string(),
-    method: z.enum(['GET', 'POST', 'PUT', 'DELETE'])
-  }),
-  'tutorial': z.object({
-    difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
-    duration: z.number()
+// Compile schemas
+Object.entries(schemas).forEach(([name, schema]) => {
+  ajv.addSchema(schema, name);
+});
+
+const result = await mdi.process({
+  content: markdownContent,
+  baseDir: './docs',
+  validateFrontmatter: (frontmatter, schemaName) => {
+    if (!schemaName) {
+      return { valid: true, errors: [] };
+    }
+
+    const validate = ajv.getSchema(schemaName);
+    if (!validate) {
+      return {
+        valid: false,
+        errors: [{
+          type: 'schema',
+          message: `Schema '${schemaName}' not found`,
+          location: 'root'
+        }]
+      };
+    }
+
+    const valid = validate(frontmatter);
+    if (valid) {
+      return { valid: true, errors: [] };
+    }
+
+    return {
+      valid: false,
+      errors: (validate.errors || []).map(err => ({
+        type: 'schema',
+        message: err.message || 'Validation error',
+        location: err.instancePath.slice(1) || 'root'
+      }))
+    };
+  }
+});
+```
+
+### Using with Yup
+
+```typescript
+import { MarkdownDI } from '@markdown-di/core';
+import * as yup from 'yup';
+
+const schemas = {
+  'blog-post': yup.object({
+    author: yup.string().required(),
+    publishedAt: yup.date().required(),
+    tags: yup.array().of(yup.string()).required()
   })
+};
+
+const result = await mdi.process({
+  content: markdownContent,
+  baseDir: './docs',
+  validateFrontmatter: async (frontmatter, schemaName) => {
+    if (!schemaName || !schemas[schemaName]) {
+      return { valid: true, errors: [] };
+    }
+
+    try {
+      const data = await schemas[schemaName].validate(frontmatter, { abortEarly: false });
+      return { valid: true, errors: [], data };
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        return {
+          valid: false,
+          errors: err.inner.map(e => ({
+            type: 'schema',
+            message: e.message,
+            location: e.path || 'root'
+          }))
+        };
+      }
+      throw err;
+    }
+  }
 });
 ```
 
@@ -979,7 +1095,7 @@ interface BatchConfig {
   include?: string[];            // Glob patterns (default: ['**/*.md'])
   exclude?: string[];            // Exclude patterns (default: ['node_modules/**', '.git/**'])
   outDir?: string;               // Output directory (default: in-place updates)
-  schemas?: Record<string, z.ZodObject<any>>;  // Schema registry
+  validateFrontmatter?: (frontmatter: FrontmatterData, schemaName?: string) => SchemaValidationResult | Promise<SchemaValidationResult>;
   onBeforeCompile?: (context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
   variants?: Record<string, VariantGenerator>;  // Multi-variant generation config
   mustache?: MustacheConfig;     // Custom Mustache template engine configuration
@@ -1021,7 +1137,7 @@ interface BatchResult {
 const processor = new BatchProcessor({
   baseDir: './docs',
   outDir: './dist',
-  schemas: { 'blog-post': blogPostSchema }
+  validateFrontmatter: myValidationFunction
 });
 
 // Check mode (CI/CD)
@@ -1085,72 +1201,6 @@ const result = await mdi.validate({
 // Returns errors but doesn't inject partials
 ```
 
-#### `loadConfigSchemas(configPath?: string, startDir?: string): void`
-
-Load JSON Schema from config file (recommended for CLI usage):
-
-```typescript
-// Auto-discover .markdown-di.json
-mdi.loadConfigSchemas();
-
-// Explicit path
-mdi.loadConfigSchemas('./custom-config.json');
-
-// Start search from specific directory
-mdi.loadConfigSchemas(undefined, './docs');
-```
-
-#### `registerJsonSchema(name: string, jsonSchema: any): void`
-
-Register a single JSON Schema:
-
-```typescript
-mdi.registerJsonSchema('blog-post', {
-  type: 'object',
-  required: ['author', 'date'],
-  properties: {
-    author: { type: 'string' },
-    date: { type: 'string', format: 'date' }
-  }
-});
-```
-
-#### `registerJsonSchemas(schemas: Record<string, any>): void`
-
-Register multiple JSON Schemas:
-
-```typescript
-mdi.registerJsonSchemas({
-  'blog-post': { /* JSON Schema */ },
-  'api-doc': { /* JSON Schema */ }
-});
-```
-
-#### `registerSchema(name: string, schema: z.ZodSchema): void`
-
-Register a Zod schema (programmatic API only):
-
-```typescript
-import { z } from '@markdown-di/core';
-
-mdi.registerSchema('blog-post', z.object({
-  author: z.string(),
-  tags: z.array(z.string())
-}));
-```
-
-**Note:** Requires Zod as a peer dependency (`npm install zod`).
-
-#### `registerSchemas(schemas: Record<string, z.ZodSchema>): void`
-
-Register multiple Zod schemas:
-
-```typescript
-mdi.registerSchemas({
-  'blog-post': blogPostSchema,
-  'api-doc': apiDocSchema
-});
-```
 
 ## Security Features
 
