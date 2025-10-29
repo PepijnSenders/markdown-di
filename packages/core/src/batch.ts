@@ -47,6 +47,10 @@ export interface FileResult {
   file: string;
   changed: boolean;
   errors: ValidationError[];
+  /**
+   * Simple error messages for easy access
+   */
+  messages: string[];
 }
 
 /**
@@ -77,6 +81,22 @@ export interface BatchResult {
    * Whether the batch processing succeeded (no errors)
    */
   success: boolean;
+
+  /**
+   * All errors grouped by file for easy access
+   * Only includes files with errors
+   */
+  errorsByFile: Record<string, ValidationError[]>;
+
+  /**
+   * All errors flattened into a single array for easy access
+   */
+  allErrors: ValidationError[];
+
+  /**
+   * All error messages as simple strings for easy access
+   */
+  errorMessages: string[];
 }
 
 /**
@@ -133,6 +153,9 @@ export class BatchProcessor {
         totalErrors: 0,
         files: [],
         success: true,
+        errorsByFile: {},
+        allErrors: [],
+        errorMessages: [],
       };
     }
 
@@ -203,6 +226,7 @@ export class BatchProcessor {
             file: variantOutputPath,
             changed: variantChanged,
             errors: variantResult.errors,
+            messages: variantResult.errors.map(e => e.message),
           });
 
           // Write variant file if not in check mode and no errors
@@ -229,6 +253,7 @@ export class BatchProcessor {
           file: relativePath,
           changed,
           errors: result.errors,
+          messages: result.errors.map(e => e.message),
         });
 
         // Write files only if:
@@ -249,12 +274,28 @@ export class BatchProcessor {
       }
     }
 
+    // Build error aggregations for easy access
+    const errorsByFile: Record<string, ValidationError[]> = {};
+    const allErrors: ValidationError[] = [];
+    const errorMessages: string[] = [];
+
+    for (const result of results) {
+      if (result.errors.length > 0) {
+        errorsByFile[result.file] = result.errors;
+        allErrors.push(...result.errors);
+        errorMessages.push(...result.messages);
+      }
+    }
+
     const batchResult: BatchResult = {
       totalFiles: files.length,
       changedFiles: changedCount,
       totalErrors: errorCount,
       files: results,
       success: errorCount === 0,
+      errorsByFile,
+      allErrors,
+      errorMessages,
     };
 
     // Log results if not silent
@@ -273,14 +314,6 @@ export class BatchProcessor {
 
     if (totalErrors > 0) {
       console.error(`✗ Found ${totalErrors} errors in ${totalFiles} files`);
-      files.forEach((fileResult) => {
-        if (fileResult.errors.length > 0) {
-          console.error(`\n${fileResult.file}:`);
-          fileResult.errors.forEach((error) => {
-            console.error(`  ${error.type}: ${error.message} at ${error.location}`);
-          });
-        }
-      });
     } else if (this.config.check && changedFiles > 0) {
       console.warn(`${changedFiles} file(s) would be formatted`);
       files.forEach((fileResult) => {

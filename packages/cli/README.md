@@ -37,21 +37,17 @@ const processor = new BatchProcessor({
   baseDir: './docs',
   validateFrontmatter: (frontmatter, schemaName) => {
     if (!schemaName || !schemas[schemaName]) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     const result = schemas[schemaName].safeParse(frontmatter);
     if (result.success) {
-      return { valid: true, errors: [], data: result.data };
+      return { valid: true, data: result.data };
     }
 
     return {
       valid: false,
-      errors: result.error.issues.map(issue => ({
-        type: 'schema',
-        message: issue.message,
-        location: issue.path.join('.') || 'root'
-      }))
+      errors: result.error.issues.map(issue => issue.message)
     };
   }
 });
@@ -220,21 +216,17 @@ const processor = new BatchProcessor({
   outDir: './dist', // Optional: output to different directory
   validateFrontmatter: (frontmatter, schemaName) => {
     if (!schemaName || !schemas[schemaName]) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     const result = schemas[schemaName].safeParse(frontmatter);
     if (result.success) {
-      return { valid: true, errors: [], data: result.data };
+      return { valid: true, data: result.data };
     }
 
     return {
       valid: false,
-      errors: result.error.issues.map(issue => ({
-        type: 'schema',
-        message: issue.message,
-        location: issue.path.join('.') || 'root'
-      }))
+      errors: result.error.issues.map(issue => issue.message)
     };
   }
 });
@@ -243,6 +235,12 @@ const result = await processor.process();
 
 if (!result.success) {
   console.error(`Found ${result.totalErrors} errors`);
+  // Easy access to all error messages
+  console.error(result.errorMessages);
+  // Or access errors by file
+  for (const [file, errors] of Object.entries(result.errorsByFile)) {
+    console.error(`${file}:`, errors.map(e => e.message));
+  }
   process.exit(1);
 }
 
@@ -273,27 +271,23 @@ const result = await mdi.process({
   currentFile: './docs/post.md',
   validateFrontmatter: (frontmatter, schemaName) => {
     if (!schemaName || !schemas[schemaName]) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     const result = schemas[schemaName].safeParse(frontmatter);
     if (result.success) {
-      return { valid: true, errors: [], data: result.data };
+      return { valid: true, data: result.data };
     }
 
     return {
       valid: false,
-      errors: result.error.issues.map(issue => ({
-        type: 'schema',
-        message: issue.message,
-        location: issue.path.join('.') || 'root'
-      }))
+      errors: result.error.issues.map(issue => issue.message)
     };
   }
 });
 
 if (result.errors.length > 0) {
-  console.error('Validation errors:', result.errors);
+  console.error('Validation errors:', result.errors.map(e => e.message));
 }
 ```
 
@@ -650,21 +644,17 @@ const result = await mdi.process({
   baseDir: './docs',
   validateFrontmatter: (frontmatter, schemaName) => {
     if (!schemaName || !schemas[schemaName]) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     const result = schemas[schemaName].safeParse(frontmatter);
     if (result.success) {
-      return { valid: true, errors: [], data: result.data };
+      return { valid: true, data: result.data };
     }
 
     return {
       valid: false,
-      errors: result.error.issues.map(issue => ({
-        type: 'schema',
-        message: issue.message,
-        location: issue.path.join('.') || 'root'
-      }))
+      errors: result.error.issues.map(issue => issue.message)
     };
   }
 });
@@ -702,33 +692,25 @@ const result = await mdi.process({
   baseDir: './docs',
   validateFrontmatter: (frontmatter, schemaName) => {
     if (!schemaName) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     const validate = ajv.getSchema(schemaName);
     if (!validate) {
       return {
         valid: false,
-        errors: [{
-          type: 'schema',
-          message: `Schema '${schemaName}' not found`,
-          location: 'root'
-        }]
+        errors: [`Schema '${schemaName}' not found`]
       };
     }
 
     const valid = validate(frontmatter);
     if (valid) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     return {
       valid: false,
-      errors: (validate.errors || []).map(err => ({
-        type: 'schema',
-        message: err.message || 'Validation error',
-        location: err.instancePath.slice(1) || 'root'
-      }))
+      errors: (validate.errors || []).map(err => err.message || 'Validation error')
     };
   }
 });
@@ -753,21 +735,17 @@ const result = await mdi.process({
   baseDir: './docs',
   validateFrontmatter: async (frontmatter, schemaName) => {
     if (!schemaName || !schemas[schemaName]) {
-      return { valid: true, errors: [] };
+      return { valid: true };
     }
 
     try {
       const data = await schemas[schemaName].validate(frontmatter, { abortEarly: false });
-      return { valid: true, errors: [], data };
+      return { valid: true, data };
     } catch (err) {
       if (err instanceof yup.ValidationError) {
         return {
           valid: false,
-          errors: err.inner.map(e => ({
-            type: 'schema',
-            message: e.message,
-            location: e.path || 'root'
-          }))
+          errors: err.inner.map(e => e.message)
         };
       }
       throw err;
@@ -1127,6 +1105,17 @@ interface BatchResult {
   totalErrors: number;
   files: FileResult[];
   success: boolean;
+  // Easy error access helpers
+  errorsByFile: Record<string, ValidationError[]>;  // Errors grouped by file
+  allErrors: ValidationError[];                     // All errors flattened
+  errorMessages: string[];                          // Simple error messages
+}
+
+interface FileResult {
+  file: string;
+  changed: boolean;
+  errors: ValidationError[];
+  messages: string[];  // Simple error messages
 }
 ```
 
@@ -1230,16 +1219,82 @@ Automatically detects and prevents circular dependencies:
 
 ## Error Handling
 
+### Single File Processing
+
 ```typescript
 const result = await mdi.process({ content, baseDir });
 
 if (result.errors.length > 0) {
+  // Access detailed error objects
   for (const error of result.errors) {
     console.error(`[${error.type}] ${error.message}`);
     console.error(`  at ${error.location}`);
   }
 }
 ```
+
+### Batch Processing
+
+The batch processor provides multiple ways to access errors for convenience:
+
+```typescript
+const result = await processor.process();
+
+if (!result.success) {
+  // Option 1: Simple error messages array
+  console.error('Errors:', result.errorMessages);
+  // ["Schema product-planner-agent not found", "Missing required field: author"]
+
+  // Option 2: Errors grouped by file
+  for (const [file, errors] of Object.entries(result.errorsByFile)) {
+    console.error(`\n${file}:`);
+    errors.forEach(e => console.error(`  - ${e.message}`));
+  }
+
+  // Option 3: All errors flattened (with full ValidationError objects)
+  console.error(`Total errors: ${result.allErrors.length}`);
+
+  // Option 4: Per-file simple messages
+  for (const fileResult of result.files) {
+    if (fileResult.messages.length > 0) {
+      console.error(`${fileResult.file}:`, fileResult.messages);
+    }
+  }
+}
+```
+
+### Schema Validation Return Type
+
+When implementing `validateFrontmatter`, return a simplified structure:
+
+```typescript
+interface SchemaValidationResult {
+  valid: boolean;
+  errors?: string[];  // Simple error messages (optional when valid=true)
+  data?: unknown;     // Optional transformed data
+}
+```
+
+**Example:**
+
+```typescript
+validateFrontmatter: (frontmatter, schemaName) => {
+  // Valid with no data transformation
+  if (!schemaName) return { valid: true };
+
+  // Valid with data transformation
+  const parsed = schema.safeParse(frontmatter);
+  if (parsed.success) return { valid: true, data: parsed.data };
+
+  // Invalid with error messages
+  return {
+    valid: false,
+    errors: parsed.error.issues.map(i => i.message)
+  };
+}
+```
+
+The library automatically converts simple error strings into full `ValidationError` objects with type, location, and other metadata.
 
 **Error Types:**
 - `frontmatter` - Invalid frontmatter structure
