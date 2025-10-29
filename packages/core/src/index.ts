@@ -110,12 +110,19 @@ export class MarkdownDI {
       const schemaName = typeof frontmatter.schema === "string" ? frontmatter.schema : undefined;
       const validationResult = await options.validateFrontmatter(frontmatter, schemaName);
 
-      if (!validationResult.valid) {
-        allErrors.push(...validationResult.errors);
-      } else if (validationResult.data) {
-        // Update frontmatter with validated/transformed data
+      if (!validationResult.valid && validationResult.errors) {
+        // Convert simple string errors to ValidationError objects
+        const schemaErrors = validationResult.errors.map(error => ({
+          type: 'schema' as const,
+          message: error,
+          location: context.currentFile || 'frontmatter',
+        }));
+        allErrors.push(...schemaErrors);
+      } else if (validationResult.valid && validationResult.data) {
+        // Update frontmatter with validated/transformed data if provided
         frontmatter = validationResult.data as FrontmatterData;
       }
+      // If valid but no data, keep original frontmatter
     }
 
     // Validate partial syntax in content

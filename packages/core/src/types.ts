@@ -60,7 +60,7 @@ export interface VariantGenerator {
  */
 export interface SchemaValidationResult {
   valid: boolean
-  errors: ValidationError[]
+  errors?: string[]
   data?: unknown
 }
 
