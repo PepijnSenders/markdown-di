@@ -22,15 +22,6 @@ export async function validateCommand(input: string, options: ValidateOptions) {
     process.exit(1)
   }
 
-  // Load schemas from config (start from first file's directory)
-  const startDir = dirname(files[0])
-  try {
-    mdi.loadConfigSchemas(options.config, startDir)
-    console.log(chalk.green('✓ Loaded schema configuration\n'))
-  } catch (err) {
-    console.log(chalk.yellow('⚠ No schema config found, proceeding without validation\n'))
-  }
-
   console.log(chalk.gray(`Validating ${files.length} file(s)...\n`))
 
   let successCount = 0
