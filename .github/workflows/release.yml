@@ -77,8 +77,16 @@ jobs:
           echo "New version: $NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-          # Update package.json
-          node -e "const pkg = require('./package.json'); pkg.version = '$NEW_VERSION'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          # Lockstep: every workspace package gets the same version.
+          cd ..
+          for pkg in core bun cli; do
+            node -e "const pkg = require('./$pkg/package.json'); pkg.version = '$NEW_VERSION'; require('fs').writeFileSync('./$pkg/package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          done
+
+      - name: Refresh workspace links after bump
+        # bun publish rewrites workspace:^ deps from the INSTALLED workspace
+        # version — re-install so the rewrite sees the freshly bumped one.
+        run: bun install
 
       - name: Update CHANGELOG
         run: |
@@ -123,7 +131,7 @@ jobs:
 
       - name: Commit version bump and changelog
         run: |
-          git add packages/core/package.json CHANGELOG.md
+          git add packages/core/package.json packages/bun/package.json packages/cli/package.json bun.lock CHANGELOG.md
           git commit -m "chore: release v${{ steps.bump.outputs.version }}"
           git push origin main
 
@@ -142,8 +150,13 @@ jobs:
           EOF
 
       - name: Publish to npm
-        working-directory: ./packages/core
-        run: npm publish --access public
+        # bun publish (not npm publish) so workspace:^ deps are rewritten to
+        # the real version. Order matters: core first, so bun/cli's dep on the
+        # new core version resolves the moment they land.
+        run: |
+          for pkg in core bun cli; do
+            (cd packages/$pkg && bun publish --access public)
+          done
 
       - name: Create GitHub Release
         uses: actions/create-release@v1

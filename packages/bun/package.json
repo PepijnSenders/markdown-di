@@ -54,7 +54,7 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@markdown-di/core": "workspace:*",
+    "@markdown-di/core": "workspace:^",
     "@types/bun": "latest",
     "typescript": "^5.9.3"
   }
