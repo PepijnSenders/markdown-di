@@ -179,12 +179,72 @@ with a sibling `.d.md.ts` still win):
 
 which types any `*.md` import as `(params?: Record<string, unknown>) => string`.
 
+### Single-file mode
+
+With many prompts, one sibling `.d.md.ts` per template clutters the tree. `--single-file`
+emits **one** declaration file instead, containing a wildcard ambient module block per
+template:
+
+```sh
+bunx markdown-di-typegen "prompts/**/*.md" --single-file types/prompts.d.ts
+```
+
+```ts
+// types/prompts.d.ts (generated)
+declare module '*compile-brief.md' {
+  export interface CompileBriefParams {
+    transcript: string
+    productName: string
+    attempt?: number
+  }
+
+  const render: (params: CompileBriefParams) => string
+  export default render
+
+  export const frontmatter: Record<string, unknown>
+  export const source: string
+}
+```
+
+The blocks match import specifiers by filename (`./prompts/compile-brief.md` matches
+`'*compile-brief.md'`), so no sibling files and no `allowArbitraryExtensions` — the one
+file just needs to be inside your tsconfig's `include`. Prefer it when a growing prompt
+directory makes generated siblings obnoxious; prefer sibling mode when basenames aren't
+under your control.
+
+Because matching is by filename, single-file mode enforces two constraints and fails
+loudly (listing the offenders) when they're violated:
+
+- **Basenames must be unique** across the globbed templates — `a/compile.md` and
+  `b/compile.md` would both match `'*compile.md'`.
+- **No basename may be a proper suffix of another** — an import of `./self-narrate.md`
+  also matches `'*narrate.md'`.
+
+Two caveats:
+
+- **Stale siblings shadow the single file.** TypeScript prefers a resolved sibling
+  `.d.md.ts` over ambient wildcard modules, so a leftover sibling from an earlier
+  sibling-mode run silently overrides the single file with possibly stale types. Typegen
+  warns and lists them; delete them when switching modes.
+- **Don't combine with the `md-modules` reference — use `--include-fallback` instead.**
+  Ambient wildcard ties (`'*narrate.md'` vs `'*.md'`) are broken by declaration order,
+  so a separately loaded generic fallback can shadow the per-template blocks.
+  `--include-fallback` appends the generic `*.md` / `*.markdown` blocks *after* the
+  per-template blocks in the same file, where they safely lose the tie.
+
 Typegen is also available programmatically:
 
 ```ts
 import { typegen } from '@markdown-di/bun'
 
 typegen('prompts/**/*.md', { cwd: import.meta.dir })
+
+// Single-file mode, with the generic fallback appended:
+typegen('prompts/**/*.md', {
+  cwd: import.meta.dir,
+  singleFile: 'types/prompts.d.ts',
+  includeFallback: true,
+})
 ```
 
 ## Programmatic rendering
