@@ -124,7 +124,12 @@ exports[`MarkdownDI - Core Integration Tests Validation validates and catches un
 exports[`MarkdownDI - Core Integration Tests Validation validates reference syntax 1`] = `
 [
   {
-    "location": "line 5, column 0",
+    "location": "line 8, column 0",
+    "message": "Empty tag reference",
+    "type": "syntax",
+  },
+  {
+    "location": "line 9, column 0",
     "message": "Invalid characters in partial reference: "invalid{nested"",
     "type": "syntax",
   },
@@ -147,35 +152,6 @@ exports[`MarkdownDI - Core Integration Tests Validation validates reference stru
     "location": "partials.guides",
     "message": "Partial file not found: should-be-an-array",
     "type": "file",
-  },
-]
-`;
-
-exports[`MarkdownDI - Core Integration Tests Schema Validation validates with registered schema 1`] = `[]`;
-
-exports[`MarkdownDI - Core Integration Tests Schema Validation catches schema validation errors 1`] = `
-[
-  {
-    "location": "version",
-    "message": "Invalid input: expected string, received undefined",
-    "type": "schema",
-  },
-  {
-    "location": "count",
-    "message": "Invalid input: expected number, received undefined",
-    "type": "schema",
-  },
-]
-`;
-
-exports[`MarkdownDI - Core Integration Tests Schema Validation registers and uses named schemas 1`] = `[]`;
-
-exports[`MarkdownDI - Core Integration Tests Schema Validation catches errors for unregistered schema references 1`] = `
-[
-  {
-    "location": "frontmatter.schema",
-    "message": "Schema "nonexistent-schema" not found. No schemas registered.",
-    "type": "schema",
   },
 ]
 `;

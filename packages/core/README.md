@@ -101,6 +101,8 @@ docs/getting-started.md:
 - ✅ **Dynamic fields** - `$dynamic` keyword works with hooks and variants API
 - ✅ **Multi-variant generation** - One template → many output files with different data
 - ✅ **Batch processing** - Process entire directories with one API call
+- ✅ **Strict mode** - Opt-in errors for undefined `{{variables}}` (recommended for prompts)
+- ✅ **Typed imports (Bun)** - `import render from "./file.md"` as a strict, typed render function
 
 ## Installation
 
@@ -116,6 +118,12 @@ npx @markdown-di/cli validate docs/
 
 ```bash
 npm install @markdown-di/core
+```
+
+### Typed imports for Bun
+
+```bash
+bun add @markdown-di/bun
 ```
 
 ## Quick Start
@@ -291,11 +299,50 @@ if (result.errors.length > 0) {
 }
 ```
 
+### Typed Markdown Imports (Bun)
+
+`@markdown-di/bun` turns markdown files into typed, strict render functions — import a template like a module instead of running a batch pipeline:
+
+```md
+---
+name: compile-brief
+params:
+  transcript: string
+  attempt?: number
+partials:
+  guidelines: partials/guidelines.md
+---
+{{{partials.guidelines}}}
+
+Compile the brief{{#attempt}} (attempt {{attempt}}){{/attempt}}:
+
+{{transcript}}
+```
+
+```ts
+import compileBrief from "./prompts/compile-brief.md";
+
+const prompt = compileBrief({ transcript }); // ✅ typed params, rendered string
+```
+
+Setup is one line in `bunfig.toml`:
+
+```toml
+preload = ["@markdown-di/bun/plugin"]
+```
+
+- **Strict by construction** — throws on params not declared in the `params:` block, on missing required params, and on any `{{tag}}` that resolves to nothing. No silent empty strings.
+- **Typed call sites** — `markdown-di-typegen 'src/**/*.md'` emits sibling `.d.md.ts` declarations, so TypeScript rejects undeclared or mistyped params (an ambient `*.md` fallback is included for untyped files).
+- **Everything else still works** — partials, globs, `$parent` scoping, circular detection; plus a configurable partials root (`partialsRoot` in the nearest `.markdown-di.json`) so `~/`-prefixed paths reach shared partials across directories.
+
+See [`packages/bun`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/bun) for the full guide.
+
 ## Use Cases
 
 - **Documentation sites** - Validate 100s of markdown files in CI/CD
 - **Content workflows** - Enforce consistent frontmatter across teams
 - **AI/Agent systems** - Validate generated markdown at build time
+- **LLM prompt management** - Author prompts as markdown with typed params and strict rendering
 - **API docs** - Type-safe schemas for endpoints, methods, auth
 - **Static site generators** - Pre-process markdown with type safety
 
@@ -453,6 +500,26 @@ This is not a draft.
 {{/draft}}
 ```
 
+### Strict Mode (catch typo'd variables)
+
+By default, a `{{variable}}` that doesn't match any frontmatter key silently renders
+as an empty string (standard Mustache semantics). Pass `strict: true` to get an
+`injection`-type error instead, for every variable or section — in the document body
+and inside every transcluded partial (checked against the partial's merged context) —
+that references a key absent from the view:
+
+```typescript
+const result = await mdi.process({
+  content,
+  baseDir: './docs',
+  strict: true,  // {{typo'd}} variables error instead of rendering empty
+});
+// result.errors: [{ type: 'injection', message: 'Strict mode: {{greting}} does not resolve to a key in the view', location: 'line 7, column 0' }]
+```
+
+`BatchProcessor` accepts the same `strict` option. Strict mode is recommended when
+rendering prompts, where a silently-empty variable is almost always a typo.
+
 ### File Injection (Partials)
 
 Inject external file content:
@@ -511,6 +578,15 @@ Partials can have their own frontmatter with variables that support:
 - **Variable overrides**: Partial frontmatter takes precedence over parent values
 - **Parent references**: Use `$parent` or `$parent('key')` to explicitly get parent values
 - **Nested partials**: Partials can include other partials
+
+> **Scoping semantics (intended behavior):** a partial inherits the **entire** parent
+> context implicitly — every parent frontmatter field is visible inside the partial
+> without any declaration, and the partial's own frontmatter only shadows the keys it
+> redefines. `$parent` / `$parent('key')` are explicit sugar for values the partial
+> wants to pin or rename (e.g. to re-expose a parent value under a key the partial's
+> own frontmatter would otherwise shadow); they are never required just to *read* a
+> parent variable. In the example below, `{{version}}`, `{{author}}` and `{{theme}}`
+> resolve from the parent even though `sections/header.md` never declares them.
 
 #### Example: Partial Using Parent Variables
 
@@ -806,6 +882,10 @@ Version: {{version}}
 - The `onBeforeCompile` hook (as shown above)
 - The variants API (see [Multi-Variant Template Generation](#multi-variant-template-generation))
 - Both combined (hook + variant data)
+
+A field marked `$dynamic` that receives no value — because no hook was configured, or
+the hook didn't provide it — is a **validation error** (`type: 'schema'`). The literal
+string `$dynamic` is never rendered into output.
 
 ## Multi-Variant Template Generation
 
@@ -1401,6 +1481,31 @@ All examples include:
 - ✅ Pre-built `dist/` folders showing output
 - ✅ CLI and programmatic usage examples
 - ✅ README with setup instructions
+
+## Caveats
+
+### YAML round-trip can change scalar formatting
+
+Output frontmatter is re-serialized from the parsed YAML, so values round-trip through
+their parsed representation. Most notably, version-like numbers lose trailing zeros:
+`version: 1.10` is parsed as the number `1.1` and written back as `1.1`. **Quote
+version-like strings** (`version: "1.10"`) — and any other scalar whose exact
+formatting matters — to keep them byte-for-byte intact.
+
+### Glob patterns follow symlinks
+
+Partial glob patterns are resolved with [fast-glob](https://github.com/mrmlnc/fast-glob),
+which follows symbolic links by default. A symlink inside your `baseDir` that points
+outside of it will be matched and its target's content transcluded, bypassing the
+path-traversal check that applies to literal `../` paths. Don't keep untrusted
+symlinks inside directories you process.
+
+### Synchronous processing
+
+`MarkdownDI.processSync(options)` runs the same pipeline synchronously. The only
+restriction is that `onBeforeCompile` and `validateFrontmatter` hooks must return
+their results directly — a hook that returns a Promise is reported as an error
+(use `process()` for async hooks).
 
 ## TypeScript Support
 

@@ -48,11 +48,7 @@ export interface VariantGenerator {
    * @param index - Index of the variant (0-based)
    * @returns Relative path for the output file
    */
-  getOutputPath: (
-    context: HookContext,
-    data: Record<string, unknown>,
-    index: number
-  ) => string
+  getOutputPath: (context: HookContext, data: Record<string, unknown>, index: number) => string
 }
 
 /**
@@ -84,7 +80,7 @@ export interface ProcessOptions {
    */
   validateFrontmatter?: (
     frontmatter: FrontmatterData,
-    schemaName?: string
+    schemaName?: string,
   ) => SchemaValidationResult | Promise<SchemaValidationResult>
   /**
    * Variant generators mapped by file ID
@@ -96,6 +92,33 @@ export interface ProcessOptions {
    * Allows customization of Mustache behavior like custom delimiters
    */
   mustache?: MustacheConfig
+  /**
+   * Strict variable checking.
+   *
+   * When enabled, every `{{variable}}`, `{{#section}}` and `{{^section}}` in the
+   * document body — and in every transcluded partial, checked against that
+   * partial's merged context — must reference a key that exists in the view.
+   * References to absent keys produce `injection`-type errors instead of
+   * silently rendering as an empty string.
+   *
+   * Default: `false` (unknown variables render as empty string, matching
+   * Mustache semantics). Strict mode is recommended when rendering prompts,
+   * where a silently-empty variable is almost always a typo.
+   */
+  strict?: boolean
+}
+
+/**
+ * Options for MarkdownDI.processSync
+ * Same as ProcessOptions, but hooks must be synchronous
+ */
+export interface ProcessSyncOptions
+  extends Omit<ProcessOptions, 'onBeforeCompile' | 'validateFrontmatter'> {
+  onBeforeCompile?: (context: HookContext) => Record<string, unknown>
+  validateFrontmatter?: (
+    frontmatter: FrontmatterData,
+    schemaName?: string,
+  ) => SchemaValidationResult
 }
 
 /**
@@ -149,4 +172,8 @@ export interface ProcessingContext {
    * Mustache template engine configuration
    */
   mustache?: MustacheConfig
+  /**
+   * Strict variable checking (see ProcessOptions.strict)
+   */
+  strict?: boolean
 }

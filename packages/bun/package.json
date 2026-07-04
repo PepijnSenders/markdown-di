@@ -1,0 +1,61 @@
+{
+  "name": "@markdown-di/bun",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Bun loader for markdown-di - import .md prompt files as typed, strict render functions",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js"
+    },
+    "./md-modules": {
+      "types": "./md-modules.d.ts"
+    }
+  },
+  "bin": {
+    "markdown-di-typegen": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "md-modules.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts ./src/plugin.ts ./src/cli.ts --outdir ./dist --target bun --format esm --packages external --splitting && tsc --emitDeclarationOnly",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "markdown",
+    "bun",
+    "loader",
+    "plugin",
+    "frontmatter",
+    "prompts",
+    "typegen"
+  ],
+  "author": "Pepijn Senders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PepijnSenders/markdown-di.git",
+    "directory": "packages/bun"
+  },
+  "dependencies": {
+    "@types/mustache": "4.2.6",
+    "gray-matter": "^4.0.3",
+    "mustache": "4.2.0",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@markdown-di/core": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
