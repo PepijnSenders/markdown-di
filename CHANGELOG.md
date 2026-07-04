@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.15] - 2026-07-04
+
+### Changed
+- Strict rendering, /batch/validator fixes, and @markdown-di/bun typed imports ([#18](https://github.com/PepijnSenders/markdown-di/pull/18)) by @PepijnSenders
+
+
 ## [0.9.14] - 2025-10-29
 
 ### Changed
