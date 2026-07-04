@@ -1,0 +1,2 @@
+# Registers the .md loader when running bun / bun test from this package.
+preload = ["./src/plugin.ts"]

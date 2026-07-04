@@ -1,0 +1,5 @@
+---
+partials:
+  bare: ~/
+---
+{{partials.bare}}
