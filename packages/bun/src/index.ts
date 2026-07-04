@@ -2,4 +2,11 @@ export { RenderError, type RenderErrorCode } from './errors'
 export { markdownDiLoader } from './loader'
 export type { ParamSpec, ParamType } from './params'
 export { createRenderer, type Renderer, type RenderFunction } from './render'
-export { generateDeclaration, type TypegenEntry, type TypegenOptions, typegen } from './typegen'
+export {
+  generateDeclaration,
+  generateSingleFileDeclaration,
+  type SingleFileDeclarationOptions,
+  type TypegenEntry,
+  type TypegenOptions,
+  typegen,
+} from './typegen'
