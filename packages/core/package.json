@@ -2,14 +2,14 @@
   "name": "@markdown-di/core",
   "version": "0.9.14",
   "description": "Parser-agnostic dependency injection for markdown using frontmatter",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [

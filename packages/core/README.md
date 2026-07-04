@@ -453,6 +453,26 @@ This is not a draft.
 {{/draft}}
 ```
 
+### Strict Mode (catch typo'd variables)
+
+By default, a `{{variable}}` that doesn't match any frontmatter key silently renders
+as an empty string (standard Mustache semantics). Pass `strict: true` to get an
+`injection`-type error instead, for every variable or section — in the document body
+and inside every transcluded partial (checked against the partial's merged context) —
+that references a key absent from the view:
+
+```typescript
+const result = await mdi.process({
+  content,
+  baseDir: './docs',
+  strict: true,  // {{typo'd}} variables error instead of rendering empty
+});
+// result.errors: [{ type: 'injection', message: 'Strict mode: {{greting}} does not resolve to a key in the view', location: 'line 7, column 0' }]
+```
+
+`BatchProcessor` accepts the same `strict` option. Strict mode is recommended when
+rendering prompts, where a silently-empty variable is almost always a typo.
+
 ### File Injection (Partials)
 
 Inject external file content:
@@ -511,6 +531,15 @@ Partials can have their own frontmatter with variables that support:
 - **Variable overrides**: Partial frontmatter takes precedence over parent values
 - **Parent references**: Use `$parent` or `$parent('key')` to explicitly get parent values
 - **Nested partials**: Partials can include other partials
+
+> **Scoping semantics (intended behavior):** a partial inherits the **entire** parent
+> context implicitly — every parent frontmatter field is visible inside the partial
+> without any declaration, and the partial's own frontmatter only shadows the keys it
+> redefines. `$parent` / `$parent('key')` are explicit sugar for values the partial
+> wants to pin or rename (e.g. to re-expose a parent value under a key the partial's
+> own frontmatter would otherwise shadow); they are never required just to *read* a
+> parent variable. In the example below, `{{version}}`, `{{author}}` and `{{theme}}`
+> resolve from the parent even though `sections/header.md` never declares them.
 
 #### Example: Partial Using Parent Variables
 
@@ -806,6 +835,10 @@ Version: {{version}}
 - The `onBeforeCompile` hook (as shown above)
 - The variants API (see [Multi-Variant Template Generation](#multi-variant-template-generation))
 - Both combined (hook + variant data)
+
+A field marked `$dynamic` that receives no value — because no hook was configured, or
+the hook didn't provide it — is a **validation error** (`type: 'schema'`). The literal
+string `$dynamic` is never rendered into output.
 
 ## Multi-Variant Template Generation
 
@@ -1401,6 +1434,31 @@ All examples include:
 - ✅ Pre-built `dist/` folders showing output
 - ✅ CLI and programmatic usage examples
 - ✅ README with setup instructions
+
+## Caveats
+
+### YAML round-trip can change scalar formatting
+
+Output frontmatter is re-serialized from the parsed YAML, so values round-trip through
+their parsed representation. Most notably, version-like numbers lose trailing zeros:
+`version: 1.10` is parsed as the number `1.1` and written back as `1.1`. **Quote
+version-like strings** (`version: "1.10"`) — and any other scalar whose exact
+formatting matters — to keep them byte-for-byte intact.
+
+### Glob patterns follow symlinks
+
+Partial glob patterns are resolved with [fast-glob](https://github.com/mrmlnc/fast-glob),
+which follows symbolic links by default. A symlink inside your `baseDir` that points
+outside of it will be matched and its target's content transcluded, bypassing the
+path-traversal check that applies to literal `../` paths. Don't keep untrusted
+symlinks inside directories you process.
+
+### Synchronous processing
+
+`MarkdownDI.processSync(options)` runs the same pipeline synchronously. The only
+restriction is that `onBeforeCompile` and `validateFrontmatter` hooks must return
+their results directly — a hook that returns a Promise is reported as an error
+(use `process()` for async hooks).
 
 ## TypeScript Support
 

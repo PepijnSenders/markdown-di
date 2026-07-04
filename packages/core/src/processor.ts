@@ -3,7 +3,8 @@ import { isDynamicPattern } from 'fast-glob'
 import matter from 'gray-matter'
 import Mustache from 'mustache'
 import { parse as parseYaml } from 'yaml'
-import type { CircularDependencyDetector, DependencyResolver } from './resolver'
+import type { DependencyResolver } from './resolver'
+import { checkTemplateStrict } from './strict'
 import type { FrontmatterData, MustacheConfig, ProcessingContext, ValidationError } from './types'
 
 /**
@@ -14,32 +15,36 @@ export class ContentProcessor {
 
   constructor(
     private resolver: DependencyResolver,
-    private circularDetector: CircularDependencyDetector,
     private frontmatterProcessor: FrontmatterProcessor,
     mustacheConfig?: MustacheConfig,
   ) {
     this.mustacheConfig = mustacheConfig
   }
 
-  async process(
+  process(
     content: string,
     frontmatter: FrontmatterData,
     context: ProcessingContext,
-  ): Promise<{
+    bodyLineOffset: number = 0,
+  ): {
     processedContent: string
     errors: ValidationError[]
     dependencies: string[]
-  }> {
+  } {
     const errors: ValidationError[] = []
 
     // Resolve dependencies and check for issues
     const { dependencies, errors: resolutionErrors } = this.resolver.resolve(frontmatter)
     errors.push(...resolutionErrors)
 
-    // Check for circular dependencies
-    if (context.currentFile) {
-      const circularErrors = this.circularDetector.detect(context.currentFile, dependencies)
-      errors.push(...circularErrors)
+    // A file listing itself as a partial is a circular dependency.
+    // (Indirect cycles are caught by the visitedFiles guard during transclusion.)
+    if (context.currentFile && dependencies.includes(context.currentFile)) {
+      errors.push({
+        type: 'circular',
+        message: `Circular dependency detected: ${context.currentFile} includes itself as a partial`,
+        location: context.currentFile,
+      })
     }
 
     // If in validate mode, return early
@@ -55,13 +60,23 @@ export class ContentProcessor {
     const view: Record<string, unknown> = { ...frontmatter }
 
     // Process partials using shared logic
-    const { partialsMap, errors: partialProcessingErrors } = await this.processPartials(
+    const { partialsMap, errors: partialProcessingErrors } = this.processPartials(
       view,
       context,
       resolutionErrors,
     )
     view.partials = partialsMap
     errors.push(...partialProcessingErrors)
+
+    // Strict mode: report variables/sections that don't resolve to a view key
+    if (context.strict) {
+      errors.push(
+        ...checkTemplateStrict(content, view, {
+          tags: this.mustacheConfig?.tags,
+          lineOffset: bodyLineOffset,
+        }),
+      )
+    }
 
     // Render content with Mustache using shared logic
     const { rendered: processedContent, error: renderError } = this.renderWithMustache(
@@ -80,11 +95,11 @@ export class ContentProcessor {
    * Process partials for a given frontmatter and context
    * This is shared logic between main document and nested partial processing
    */
-  private async processPartials(
+  private processPartials(
     frontmatter: Record<string, unknown>,
     context: ProcessingContext,
     resolutionErrors: ValidationError[] = [],
-  ): Promise<{ partialsMap: Record<string, string>; errors: ValidationError[] }> {
+  ): { partialsMap: Record<string, string>; errors: ValidationError[] } {
     const partialsMap: Record<string, string> = {}
     const errors: ValidationError[] = []
 
@@ -94,9 +109,7 @@ export class ContentProcessor {
 
     for (const [key, value] of Object.entries(frontmatter.partials)) {
       // Check if this partial already has an error from resolution phase
-      const hasResolutionError = resolutionErrors.some(
-        (err) => err.location === `partials.${key}`,
-      )
+      const hasResolutionError = resolutionErrors.some((err) => err.location === `partials.${key}`)
 
       if (hasResolutionError) {
         // Set empty string so Mustache doesn't break
@@ -112,7 +125,7 @@ export class ContentProcessor {
       }
 
       // Only try to resolve content if there was no resolution error
-      const { content: fileContent, errors: partialErrors } = await this.resolvePartialContent(
+      const { content: fileContent, errors: partialErrors } = this.resolvePartialContent(
         key,
         value,
         partialContext,
@@ -135,8 +148,8 @@ export class ContentProcessor {
   ): { rendered: string; error?: ValidationError } {
     try {
       // Build Mustache render options
-      const renderOptions: any = {
-        escape: (text: string) => text // Don't escape - return text as-is
+      const renderOptions: { escape: (text: string) => string; tags?: [string, string] } = {
+        escape: (text: string) => text, // Don't escape - return text as-is
       }
 
       // Add custom tags if configured
@@ -213,11 +226,11 @@ export class ContentProcessor {
    * Resolve a partial definition to its file content
    * Now supports partials with frontmatter and variable interpolation
    */
-  private async resolvePartialContent(
+  private resolvePartialContent(
     _key: string,
     value: string | string[],
     context: ProcessingContext,
-  ): Promise<{ content: string; errors: ValidationError[] }> {
+  ): { content: string; errors: ValidationError[] } {
     const contents: string[] = []
     const allErrors: ValidationError[] = []
 
@@ -229,14 +242,14 @@ export class ContentProcessor {
         // Treat as glob pattern
         const filePaths = this.resolver.resolveGlobPattern(context.baseDir, pattern)
         for (const filePath of filePaths) {
-          const { content, errors } = await this.processPartialFile(filePath, context)
+          const { content, errors } = this.processPartialFile(filePath, context)
           contents.push(content)
           allErrors.push(...errors)
         }
       } else {
         // Treat as single file path
         const fullPath = this.resolver.resolveFilePath(context.baseDir, pattern)
-        const { content, errors } = await this.processPartialFile(fullPath, context)
+        const { content, errors } = this.processPartialFile(fullPath, context)
         contents.push(content)
         allErrors.push(...errors)
       }
@@ -251,10 +264,10 @@ export class ContentProcessor {
   /**
    * Process a single partial file, handling frontmatter and variable interpolation
    */
-  private async processPartialFile(
+  private processPartialFile(
     filePath: string,
     context: ProcessingContext,
-  ): Promise<{ content: string; errors: ValidationError[] }> {
+  ): { content: string; errors: ValidationError[] } {
     const rawContent = readFileSync(filePath, 'utf-8')
     const errors: ValidationError[] = []
 
@@ -300,12 +313,24 @@ export class ContentProcessor {
       parentContext: mergedContext,
       currentFile: filePath,
     }
-    const { partialsMap, errors: nestedPartialErrors } = await this.processPartials(
+    const { partialsMap, errors: nestedPartialErrors } = this.processPartials(
       partialFrontmatter,
       nestedContext,
     )
     mergedContext.partials = partialsMap
     errors.push(...nestedPartialErrors)
+
+    // Strict mode: check the partial body against its merged context
+    if (context.strict) {
+      const bodyLineOffset = rawContent.split('\n').length - body.split('\n').length
+      errors.push(
+        ...checkTemplateStrict(body, mergedContext, {
+          tags: this.mustacheConfig?.tags,
+          lineOffset: bodyLineOffset,
+          file: filePath,
+        }),
+      )
+    }
 
     // Render the partial body with merged context using shared logic
     const { rendered: processedContent, error: renderError } = this.renderWithMustache(
@@ -340,8 +365,8 @@ export class FrontmatterProcessor {
       // Configure to avoid HTML entity encoding
       const parsed = matter(content, {
         engines: {
-          yaml: (input: string) => parseYaml(input)
-        }
+          yaml: (input: string) => parseYaml(input),
+        },
       })
 
       if (!parsed.data || Object.keys(parsed.data).length === 0) {
