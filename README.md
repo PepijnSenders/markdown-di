@@ -101,6 +101,8 @@ docs/getting-started.md:
 - ✅ **Dynamic fields** - `$dynamic` keyword works with hooks and variants API
 - ✅ **Multi-variant generation** - One template → many output files with different data
 - ✅ **Batch processing** - Process entire directories with one API call
+- ✅ **Strict mode** - Opt-in errors for undefined `{{variables}}` (recommended for prompts)
+- ✅ **Typed imports (Bun)** - `import render from "./file.md"` as a strict, typed render function
 
 ## Installation
 
@@ -116,6 +118,12 @@ npx @markdown-di/cli validate docs/
 
 ```bash
 npm install @markdown-di/core
+```
+
+### Typed imports for Bun
+
+```bash
+bun add @markdown-di/bun
 ```
 
 ## Quick Start
@@ -291,11 +299,50 @@ if (result.errors.length > 0) {
 }
 ```
 
+### Typed Markdown Imports (Bun)
+
+`@markdown-di/bun` turns markdown files into typed, strict render functions — import a template like a module instead of running a batch pipeline:
+
+```md
+---
+name: compile-brief
+params:
+  transcript: string
+  attempt?: number
+partials:
+  guidelines: partials/guidelines.md
+---
+{{{partials.guidelines}}}
+
+Compile the brief{{#attempt}} (attempt {{attempt}}){{/attempt}}:
+
+{{transcript}}
+```
+
+```ts
+import compileBrief from "./prompts/compile-brief.md";
+
+const prompt = compileBrief({ transcript }); // ✅ typed params, rendered string
+```
+
+Setup is one line in `bunfig.toml`:
+
+```toml
+preload = ["@markdown-di/bun/plugin"]
+```
+
+- **Strict by construction** — throws on params not declared in the `params:` block, on missing required params, and on any `{{tag}}` that resolves to nothing. No silent empty strings.
+- **Typed call sites** — `markdown-di-typegen 'src/**/*.md'` emits sibling `.d.md.ts` declarations, so TypeScript rejects undeclared or mistyped params (an ambient `*.md` fallback is included for untyped files).
+- **Everything else still works** — partials, globs, `$parent` scoping, circular detection; plus a configurable partials root (`partialsRoot` in the nearest `.markdown-di.json`) so `~/`-prefixed paths reach shared partials across directories.
+
+See [`packages/bun`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/bun) for the full guide.
+
 ## Use Cases
 
 - **Documentation sites** - Validate 100s of markdown files in CI/CD
 - **Content workflows** - Enforce consistent frontmatter across teams
 - **AI/Agent systems** - Validate generated markdown at build time
+- **LLM prompt management** - Author prompts as markdown with typed params and strict rendering
 - **API docs** - Type-safe schemas for endpoints, methods, auth
 - **Static site generators** - Pre-process markdown with type safety
 
