@@ -258,6 +258,47 @@ const { render, frontmatter, params } = createRenderer('prompts/compile-brief.md
 render({ transcript: '…', productName: 'Jig' })
 ```
 
+## Bundling and standalone binaries (`bun build`)
+
+The default `markdownDiLoader` uses Bun's `object` loader — it returns a live render
+**function**, which is perfect for `bun run` / `bun test` but **cannot be bundled**: a
+bundler can't serialize a function, so under `bun build` (and `bun build --compile`)
+the export silently collapses to a plain object and calling it throws
+`… is not a function` at runtime.
+
+For `bun build`, use **`markdownDiBundleLoader`** instead. It captures each template
+and every partial it reaches into a self-contained snapshot at build time and emits
+real JS that rebuilds the render function from that snapshot — no filesystem, no
+preload, no cwd dependence. It works in a `--compile` standalone binary and keeps the
+same exports (`default` / `frontmatter` / `source`) and strict rendering semantics.
+
+```ts
+// build.ts — note: run this WITHOUT the runtime plugin preloaded, so only the
+// bundle loader handles .md (a preloaded markdownDiLoader would compete for it).
+import { markdownDiBundleLoader } from '@markdown-di/bun'
+
+await Bun.build({
+  entrypoints: ['./src/cli.ts'],
+  plugins: [markdownDiBundleLoader],
+  compile: { outfile: 'dist/app' }, // omit `compile` for a plain JS bundle
+})
+```
+
+The building blocks are also exported directly: `collectSources(path)` returns a
+`TemplateSnapshot`, and `createRendererFromSnapshot(snapshot)` turns one back into a
+`Renderer` — the same pair the bundle loader wires together.
+
+## Programmatic rendering
+
+The loader is a thin wrapper over `createRenderer`, which you can use directly:
+
+```ts
+import { createRenderer } from '@markdown-di/bun'
+
+const { render, frontmatter, params } = createRenderer('prompts/compile-brief.md')
+render({ transcript: '…', productName: 'Jig' })
+```
+
 ## Semantics and caveats
 
 - Rendering mirrors `@markdown-di/core`'s processor (partials, nested partials, glob
@@ -269,5 +310,6 @@ render({ transcript: '…', productName: 'Jig' })
 - Files without frontmatter import verbatim and declare no params.
 - Custom mustache delimiters and core's `onBeforeCompile`/`variants`/schema-validation
   hooks are not supported through the loader; use core's APIs for build pipelines.
-- Bun-only: the loader uses `Bun.plugin`. When bundling with `bun build`, register the
-  plugin (`markdownDiLoader`) in your build script.
+- Bun-only: the loader uses `Bun.plugin`. For `bun run` / `bun test`, preload
+  `markdownDiLoader` (via `@markdown-di/bun/plugin`); for `bun build`, use
+  `markdownDiBundleLoader` (see [Bundling](#bundling-and-standalone-binaries-bun-build)).
