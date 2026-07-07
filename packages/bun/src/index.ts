@@ -1,7 +1,15 @@
 export { RenderError, type RenderErrorCode } from './errors'
-export { markdownDiLoader } from './loader'
+export { markdownDiBundleLoader, markdownDiLoader } from './loader'
 export type { ParamSpec, ParamType } from './params'
-export { createRenderer, type Renderer, type RenderFunction } from './render'
+export {
+  collectSources,
+  createRenderer,
+  createRendererFromSnapshot,
+  type Renderer,
+  type RenderFunction,
+  type TemplateSnapshot,
+} from './render'
+export { diskSources, type Sources } from './sources'
 export {
   generateDeclaration,
   generateSingleFileDeclaration,

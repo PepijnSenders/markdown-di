@@ -1,11 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path'
-import { Glob } from 'bun'
 import Mustache from 'mustache'
-import { findPartialsRoot } from './config'
 import { RenderError } from './errors'
 import { extractFrontmatter } from './frontmatter'
 import { type ParamSpec, parseParamSpecs, validateArgs } from './params'
+import { diskSources, type Sources } from './sources'
 import { checkTemplate, hasSections } from './strict'
 
 export type RenderFunction = (params?: Record<string, unknown>) => string
@@ -26,7 +24,6 @@ export interface Renderer {
 // Mirrors core's ContentProcessor: markdown output is never HTML-escaped.
 const MUSTACHE_RENDER_CONFIG = { escape: (text: string) => text }
 const GLOB_MAGIC = /[*?[\]{}]/
-const GLOB_IGNORE = /(^|\/)(node_modules|dist|build)\//
 const PARENT_REFERENCE = /^\$parent(?:\(['"](.+?)['"]\))?$/
 
 interface RenderContext {
@@ -42,6 +39,8 @@ interface RenderContext {
   visited: Set<string>
   /** Declared param names, so optional-but-absent params error precisely. */
   declared: ReadonlySet<string>
+  /** Where file contents, existence, and globs are read from (disk or a snapshot). */
+  sources: Sources
 }
 
 /**
@@ -51,10 +50,15 @@ interface RenderContext {
  * nested partials, `$parent` scoping, glob patterns) and are pinned against core
  * by test/parity.test.ts. On top of core's behavior, rendering is strict: any
  * violation throws a RenderError instead of producing an empty string.
+ *
+ * `sources` abstracts every filesystem touch; it defaults to the real disk. Pass
+ * an in-memory resolver (see createRendererFromSnapshot) to render a graph that
+ * was captured at build time — the basis for bundling `.md` imports into a
+ * standalone binary.
  */
-export function createRenderer(filePath: string): Renderer {
+export function createRenderer(filePath: string, sources: Sources = diskSources): Renderer {
   const path = resolve(filePath)
-  const source = readFileSync(path, 'utf-8')
+  const source = sources.read(path)
 
   let document: ReturnType<typeof extractFrontmatter>
   try {
@@ -90,7 +94,7 @@ export function createRenderer(filePath: string): Renderer {
   // partial actually uses the `~/` prefix (the common case pays no fs walk).
   let sharedRoot: string | null | undefined
   const partialsRoot = () => {
-    if (sharedRoot === undefined) sharedRoot = findPartialsRoot(dirname(path))
+    if (sharedRoot === undefined) sharedRoot = sources.partialsRoot(dirname(path))
     return sharedRoot
   }
 
@@ -111,6 +115,7 @@ export function createRenderer(filePath: string): Renderer {
       partialsRoot,
       visited: new Set([path]),
       declared: new Set(specs.map((spec) => spec.name)),
+      sources,
     }
 
     // Partials resolve against the view (params and frontmatter reach `$parent`),
@@ -211,9 +216,7 @@ function resolvePartialPaths(
   assertPathSafety(path, pattern, key, base, file)
 
   if (GLOB_MAGIC.test(path)) {
-    const matches = [...new Glob(path).scanSync({ cwd: base, absolute: true, onlyFiles: true })]
-      .filter((match) => !GLOB_IGNORE.test(relative(base, match)))
-      .sort()
+    const matches = context.sources.glob(path, base)
     if (matches.length === 0) {
       throw new RenderError(
         'partial-not-found',
@@ -225,7 +228,7 @@ function resolvePartialPaths(
   }
 
   const fullPath = join(base, path)
-  if (!existsSync(fullPath)) {
+  if (!context.sources.exists(fullPath)) {
     throw new RenderError('partial-not-found', file, `partial "${key}": file not found: ${pattern}`)
   }
   return [fullPath]
@@ -268,7 +271,7 @@ function renderPartialFile(
     )
   }
 
-  const raw = readFileSync(partialPath, 'utf-8')
+  const raw = context.sources.read(partialPath)
   let document: ReturnType<typeof extractFrontmatter>
   try {
     document = extractFrontmatter(raw)
@@ -325,4 +328,140 @@ function resolveParentReferences(
     resolved[key] = value
   }
   return resolved
+}
+
+/**
+ * A self-contained capture of a template and every partial it can reach: raw
+ * sources keyed by absolute path, glob results, and the shared-partials root.
+ * Because the partial *file set* is fixed by frontmatter and disk (never by
+ * runtime params), a build-time walk captures everything a render will ever
+ * need — see collectSources / createRendererFromSnapshot.
+ */
+export interface TemplateSnapshot {
+  /** Absolute path of the entry template. */
+  entry: string
+  /** Raw contents of the entry file and every reachable partial, by absolute path. */
+  files: Record<string, string>
+  /** Recorded glob results, keyed by `${cwd} ${pattern}`. */
+  globs: Record<string, string[]>
+  /** Recorded shared-partials-root lookups, keyed by the directory queried. */
+  partialsRoots: Record<string, string | null>
+}
+
+/**
+ * Walk a template's partial graph and capture every source it touches into a
+ * TemplateSnapshot. Runs at build time against the disk (by default); the result
+ * is inlined by the bundle loader so the compiled binary can render with no fs.
+ */
+export function collectSources(filePath: string, sources: Sources = diskSources): TemplateSnapshot {
+  const entry = resolve(filePath)
+  const files: Record<string, string> = {}
+  const globs: Record<string, string[]> = {}
+  const partialsRoots: Record<string, string | null> = {}
+
+  // A recorder that delegates to the real resolver and captures every touch.
+  const recorder: Sources = {
+    read: (path) => {
+      const contents = sources.read(path)
+      files[path] = contents
+      return contents
+    },
+    exists: (path) => {
+      const found = sources.exists(path)
+      if (found) files[path] ??= sources.read(path)
+      return found
+    },
+    glob: (pattern, cwd) => {
+      const matches = sources.glob(pattern, cwd)
+      globs[`${cwd} ${pattern}`] = matches
+      for (const match of matches) files[match] ??= sources.read(match)
+      return matches
+    },
+    partialsRoot: (fromDir) => {
+      const root = sources.partialsRoot(fromDir)
+      partialsRoots[fromDir] = root
+      return root
+    },
+  }
+
+  let sharedRoot: string | null | undefined
+  const context: RenderContext = {
+    baseDir: dirname(entry),
+    partialsRoot: () => {
+      if (sharedRoot === undefined) sharedRoot = recorder.partialsRoot(dirname(entry))
+      return sharedRoot
+    },
+    visited: new Set([entry]),
+    declared: new Set(),
+    sources: recorder,
+  }
+  collectFrom(entry, context)
+
+  return { entry, files, globs, partialsRoots }
+}
+
+// Structural walk mirroring resolvePartials → renderPartialFile, but only to
+// discover files (no rendering, no params). The partial file set is static, so
+// this reaches exactly what a real render would read.
+function collectFrom(path: string, context: RenderContext): void {
+  const raw = context.sources.read(path)
+  let document: ReturnType<typeof extractFrontmatter>
+  try {
+    document = extractFrontmatter(raw)
+  } catch {
+    return // verbatim partial; nothing further to reach
+  }
+  const declaration = document.frontmatter.partials
+  if (!document.hasFrontmatter || declaration == null) return
+  if (typeof declaration !== 'object' || Array.isArray(declaration)) {
+    throw new RenderError(
+      'invalid-declaration',
+      path,
+      '`partials` must be a mapping of key -> file path or glob',
+    )
+  }
+
+  for (const [key, value] of Object.entries(declaration)) {
+    const patterns = Array.isArray(value) ? value : [value]
+    for (const pattern of patterns) {
+      if (typeof pattern !== 'string') {
+        throw new RenderError(
+          'invalid-declaration',
+          path,
+          `partial "${key}" must be a file path or glob string`,
+        )
+      }
+      for (const partialPath of resolvePartialPaths(pattern, key, context, path)) {
+        if (context.visited.has(partialPath)) continue
+        context.visited.add(partialPath)
+        collectFrom(partialPath, context)
+      }
+    }
+  }
+}
+
+/**
+ * Rebuild a renderer from a TemplateSnapshot, reading only from the snapshot —
+ * no filesystem, no cwd dependence. This is what the bundle loader inlines, so a
+ * `.md` import keeps working inside a `bun build --compile` standalone binary.
+ */
+export function createRendererFromSnapshot(snapshot: TemplateSnapshot): Renderer {
+  const memory: Sources = {
+    read: (path) => {
+      const contents = snapshot.files[path]
+      if (contents === undefined) {
+        throw new RenderError(
+          'partial-not-found',
+          path,
+          `bundled template snapshot has no source for ${path}`,
+        )
+      }
+      return contents
+    },
+    exists: (path) => Object.hasOwn(snapshot.files, path),
+    glob: (pattern, cwd) => snapshot.globs[`${cwd} ${pattern}`] ?? [],
+    partialsRoot: (fromDir) =>
+      Object.hasOwn(snapshot.partialsRoots, fromDir) ? snapshot.partialsRoots[fromDir] : null,
+  }
+  return createRenderer(snapshot.entry, memory)
 }
