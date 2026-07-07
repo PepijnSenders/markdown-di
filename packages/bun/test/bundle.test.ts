@@ -69,6 +69,10 @@ describe('bundle snapshot renderer', () => {
       entrypoints: [path],
       plugins: [markdownDiBundleLoader],
       target: 'bun',
+      // The emitted module imports the package by name to reach the runtime
+      // helper; keep it external so this check doesn't depend on a built dist/
+      // (the real consumer resolves it against its own node_modules).
+      external: ['@markdown-di/bun'],
     })
     expect(result.success).toBe(true)
     const js = await result.outputs[0].text()
