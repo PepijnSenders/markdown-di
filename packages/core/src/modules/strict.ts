@@ -33,9 +33,7 @@ const EMPTY_SET: ReadonlySet<string> = new Set()
 /** True when the template contains any section / inverted-section tokens. */
 export function hasSections(template: string): boolean {
   const containsSection = (tokens: Token[]): boolean =>
-    tokens.some(
-      (token) => token[0] === '#' || token[0] === '^' || containsSection(token[4] ?? []),
-    )
+    tokens.some((token) => token[0] === '#' || token[0] === '^' || containsSection(token[4] ?? []))
   return containsSection(Mustache.parse(template) as unknown as Token[])
 }
 

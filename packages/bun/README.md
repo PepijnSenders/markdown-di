@@ -16,6 +16,14 @@ Built for runtime template consumers — e.g. a Bun-run TypeScript CLI that keep
 prompts as `.md` files with frontmatter and renders them at the moment of use — as a
 replacement for core's build-oriented `BatchProcessor`.
 
+A file can also declare itself **data** (`export: data`) and import as a typed object —
+`{ frontmatter, body, sections }` — or be a **collection** manifest (`export: collection`)
+that imports every data file under a folder as one typed array. See
+[Data imports](#data-imports-export-data) and [Collections](#collections-export-collection).
+
+The same import semantics are available in Vite via [`@markdown-di/vite`](../vite); both
+are built on the shared engine in `@markdown-di/core/modules`.
+
 ## Setup
 
 ```sh
@@ -133,13 +141,159 @@ element.
 
 ## Module shape
 
-Importing `x.md` yields:
+What a `.md` file imports as is declared by its `export:` frontmatter key — `render`
+(the default), `data` or `collection`. Importing a template (`x.md`) yields:
 
 | export | value |
 | --- | --- |
 | `default` | `(params?) => string` — the strict render function (output is trimmed, frontmatter is not included) |
 | `frontmatter` | the file's parsed frontmatter (including the `params:` block) |
 | `source` | the raw file contents |
+
+## Data imports (`export: data`)
+
+Not every markdown file is a template. A file that declares `export: data` imports as a
+plain, typed object — YAML frontmatter for structure, the markdown body for copy, no
+rendering:
+
+```markdown
+---
+export: data
+id: g-brief
+kind: gate
+roles: [product-lead, designer]
+routes:
+  - id: hardened
+    text: hardened → backlog
+---
+
+# framed
+
+_Gate · mandatory · kill gate_
+
+The product lead decides on the pressure-tested PR-FAQ.
+
+- **Decides:** product-lead
+- **Killed:** epic → Stopped
+
+## DACI
+
+- **Driver:** product-lead
+- **Approvers:** product-lead, designer
+```
+
+```ts
+import framed from './process/framed.gate.md'
+
+framed.frontmatter.id            // "g-brief" — typed as the literal, see Typed imports
+framed.sections.title            // "framed"
+framed.sections.category         // "Gate · mandatory · kill gate"
+framed.sections.rows             // [{ label: 'Decides', text: 'product-lead', line: 17 }, …]
+framed.sections.sections[0].rows // the DACI rows
+```
+
+| export | value |
+| --- | --- |
+| `default` | `{ frontmatter, body, sections }` |
+| `frontmatter` | the parsed frontmatter, **without** the `export` key |
+| `body` | the markdown after the frontmatter, trimmed |
+| `sections` | the body split by headings (below) |
+
+### `sections`
+
+A small, line-based split — enough to drive a card face or an info panel from prose,
+without a markdown AST:
+
+```ts
+interface MarkdownSections extends MarkdownBlock {
+  title: string | null           // the first `# ` heading
+  sections: MarkdownSection[]    // every `## ` heading, in order
+}
+interface MarkdownSection extends MarkdownBlock {
+  heading: string                // text after `## `
+  line: number                   // 1-based source line of the heading
+}
+interface MarkdownBlock {        // the preamble under the title, and each `## ` section
+  category: string | null        // the italic tagline: `_…_` or `*…*`, markers stripped
+  paragraphs: string[]           // remaining paragraphs, raw markdown
+  rows: MarkdownRow[]            // `- **Label:** text` list items
+  content: string                // the block's raw markdown, trimmed
+}
+interface MarkdownRow {
+  label: string                  // without the colon (`**Label:**` or `**Label**:`)
+  text: string                   // continuation lines joined with `\n`
+  line: number                   // 1-based source line
+}
+```
+
+- **Rows** come from lists whose items are *all* `- **Label:** text` (`*`/`+` bullets
+  too). A list with any other item stays a paragraph.
+- **Category** is the first paragraph that is a single italic span, when it precedes any
+  other prose or list in its block — a bold-only line may come first (e.g.
+  `**Status: A → B**` then `_Effect · …_`).
+- `###` and deeper headings stay inside their `## ` section's content. Fenced code blocks
+  are opaque: no headings, rows or paragraph breaks are found inside them.
+- Line numbers point into the original file (frontmatter included), so a validator built
+  on top can report `file:line`.
+
+### Strictness
+
+Data is held to the same standard as templates. These fail the import (and a
+`bun build`) with a `RenderError` whose message ends in `(file:line)`:
+
+- malformed YAML frontmatter — `invalid YAML frontmatter: … (process/framed.gate.md:7)`
+- duplicate frontmatter keys — `Map keys must be unique (…:5)`
+- a non-mapping frontmatter root, or a non-YAML frontmatter language
+- an unknown `export:` value — `` `export` must be one of render | data | collection ``
+
+## Collections (`export: collection`)
+
+To import every data file under a folder, put a **manifest** next to them — a markdown
+file that declares `export: collection` and which files it collects:
+
+```markdown
+---
+export: collection
+include: "**/*.md"          # a glob or a list of globs, relative to this file
+exclude: [README.md]        # optional
+---
+
+Every card of the process. (The body is free-form documentation; it is not imported.)
+```
+
+```ts
+import cards from './process/process.md'
+
+for (const card of cards) {
+  card.path            // "02-frame/framed.gate.md" — relative to the manifest
+  card.frontmatter     // as in a data import
+  card.sections
+}
+
+type CardId = (typeof cards)[number]['frontmatter']['id'] // a union of literal ids
+```
+
+- The default export is an array of `{ path, frontmatter, body, sections }`, sorted by
+  path. The manifest never includes itself.
+- Membership is the opt-in: matched files load as data whether or not they declare
+  `export: data`. A matched file that declares a *different* kind fails loudly.
+- Patterns are jailed to the manifest's directory (no `..`, no absolute paths), like
+  partials. A manifest takes only `include` / `exclude`; any other key is an error, and
+  so is a collection that matches no files.
+
+**Why a manifest file instead of a glob in the import specifier**
+(`'./process/**/*.md?glob'`)? It is the one design that is typed, portable and explicit
+at once:
+
+- *Typed.* TypeScript can't declare a module for a glob specifier: ambient module
+  patterns allow a single `*` and no relative names, so `'./process/**/*.md?glob'` can
+  never be typed by a declaration file. A manifest is an ordinary `.md` import, so
+  typegen gives it a precise tuple type (single-file *and* sibling mode).
+- *Portable.* Bun's runtime plugins don't see unresolvable specifiers, and Vite's
+  `import.meta.glob` is Vite-only; a manifest is a plain file load in both, through the
+  same `onLoad` / `load` hook as every other `.md` import.
+- *Explicit.* The glob lives in one reviewable place next to the files it collects,
+  with room for `exclude` and for prose explaining the collection.
 
 ## Typed imports
 
@@ -169,6 +323,38 @@ export declare const source: string
 TypeScript picks these up with `"allowArbitraryExtensions": true` in the consumer's
 tsconfig. `$dynamic` params are typed `unknown`; files with only optional params get an
 optional `params?` argument; files with none get `render(): string`.
+
+Data files and collections get **literal** types — the frontmatter typed as if written
+`as const` (string/number/boolean literals, readonly tuples, readonly objects) — so
+unions derive straight from the files:
+
+```ts
+// process/process.d.md.ts (generated, abridged)
+declare const entries: readonly [
+  {
+    readonly path: "02-frame/framed.gate.md"
+    readonly frontmatter: {
+      readonly id: "g-brief"
+      readonly kind: "gate"
+      readonly roles: readonly ["product-lead", "designer"]
+      // …
+    }
+    readonly body: string
+    readonly sections: MarkdownSections
+  },
+  // …one entry per member
+]
+export default entries
+```
+
+```ts
+type CardId = (typeof cards)[number]['frontmatter']['id'] // "g-brief" | "n-classify" | …
+```
+
+The `MarkdownSections` interfaces are written into the generated file itself (in
+single-file mode once, as an ambient `'markdown-di:types'` module), so the declarations
+depend on no installed package. Re-run typegen whenever the data changes — the literal
+types *are* the data.
 
 For files without a generated declaration, reference the ambient fallback once (files
 with a sibling `.d.md.ts` still win):
@@ -271,6 +457,8 @@ and every partial it reaches into a self-contained snapshot at build time and em
 real JS that rebuilds the render function from that snapshot — no filesystem, no
 preload, no cwd dependence. It works in a `--compile` standalone binary and keeps the
 same exports (`default` / `frontmatter` / `source`) and strict rendering semantics.
+Data and collection imports bundle as plain object / array literals — no runtime helper
+at all.
 
 ```ts
 // build.ts — note: run this WITHOUT the runtime plugin preloaded, so only the
@@ -288,26 +476,17 @@ The building blocks are also exported directly: `collectSources(path)` returns a
 `TemplateSnapshot`, and `createRendererFromSnapshot(snapshot)` turns one back into a
 `Renderer` — the same pair the bundle loader wires together.
 
-## Programmatic rendering
-
-The loader is a thin wrapper over `createRenderer`, which you can use directly:
-
-```ts
-import { createRenderer } from '@markdown-di/bun'
-
-const { render, frontmatter, params } = createRenderer('prompts/compile-brief.md')
-render({ transcript: '…', productName: 'Jig' })
-```
-
 ## Semantics and caveats
 
 - Rendering mirrors `@markdown-di/core`'s processor (partials, nested partials, glob
   patterns, `$parent` scoping, unescaped output) and is pinned against core by parity
-  tests — but it is implemented here, synchronously, so `render()` returns a `string`,
-  not a `Promise`.
+  tests — but it is a separate, synchronous engine (`@markdown-di/core/modules`, shared
+  with `@markdown-di/vite`), so `render()` returns a `string`, not a `Promise`.
 - Output is the rendered **body only** (trimmed); frontmatter and core's
   `output-frontmatter` reassembly are a build-pipeline concern and don't apply here.
 - Files without frontmatter import verbatim and declare no params.
+- `export` is a reserved frontmatter key: it can't be a param name, and data imports
+  strip it from `frontmatter`.
 - Custom mustache delimiters and core's `onBeforeCompile`/`variants`/schema-validation
   hooks are not supported through the loader; use core's APIs for build pipelines.
 - Bun-only: the loader uses `Bun.plugin`. For `bun run` / `bun test`, preload

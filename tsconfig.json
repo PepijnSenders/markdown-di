@@ -12,7 +12,16 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true
+    "composite": true,
+    // Cross-package imports resolve to source in the workspace, so `bun test`
+    // (which honors tsconfig paths) never needs a built dist/. Each package's
+    // tsconfig.build.json clears these so its declarations reference the
+    // published package instead.
+    "paths": {
+      "@markdown-di/core/modules": ["./packages/core/src/modules/index.ts"],
+      "@markdown-di/core/modules/node": ["./packages/core/src/modules/node.ts"],
+      "@markdown-di/vite/runtime": ["./packages/vite/src/runtime.ts"]
+    }
   },
   "exclude": ["node_modules", "dist", "build", "packages/**/dist"]
 }

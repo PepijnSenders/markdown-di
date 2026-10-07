@@ -5,9 +5,10 @@ import { typegen } from './typegen'
 
 const USAGE = `Usage: markdown-di-typegen [patterns...] [options]
 
-Generate sibling .d.md.ts declaration files for markdown-di prompt files, so
-Bun .md imports are typed (requires "allowArbitraryExtensions": true in the
-consuming tsconfig).
+Generate sibling .d.md.ts declaration files for markdown-di files, so .md
+imports are typed (requires "allowArbitraryExtensions": true in the consuming
+tsconfig): templates as typed render functions, data files (export: data) and
+collections (export: collection) with literal frontmatter types.
 
 Options:
   --cwd <dir>           Directory to resolve patterns from (default: current directory)

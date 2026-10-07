@@ -1,6 +1,16 @@
+export type {
+  CollectionEntry,
+  DataModule,
+  MarkdownBlock,
+  MarkdownRow,
+  MarkdownSection,
+  MarkdownSections,
+  ModuleKind,
+  ParamSpec,
+  ParamType,
+} from '@markdown-di/core/modules'
 export { RenderError, type RenderErrorCode } from './errors'
 export { markdownDiBundleLoader, markdownDiLoader } from './loader'
-export type { ParamSpec, ParamType } from './params'
 export {
   collectSources,
   createRenderer,

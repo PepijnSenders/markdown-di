@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    // Resolve @markdown-di/core through node_modules (its built declarations),
+    // not the workspace source the root `paths` point at.
+    "paths": {}
+  }
+}

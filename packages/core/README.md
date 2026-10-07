@@ -102,7 +102,8 @@ docs/getting-started.md:
 - ✅ **Multi-variant generation** - One template → many output files with different data
 - ✅ **Batch processing** - Process entire directories with one API call
 - ✅ **Strict mode** - Opt-in errors for undefined `{{variables}}` (recommended for prompts)
-- ✅ **Typed imports (Bun)** - `import render from "./file.md"` as a strict, typed render function
+- ✅ **Typed imports (Bun and Vite)** - `import render from "./file.md"` as a strict, typed render function
+- ✅ **Data imports** - `export: data` files import as typed `{ frontmatter, body, sections }`; `export: collection` manifests import a whole folder as one typed array
 
 ## Installation
 
@@ -124,6 +125,12 @@ npm install @markdown-di/core
 
 ```bash
 bun add @markdown-di/bun
+```
+
+### Typed imports for Vite
+
+```bash
+npm install -D @markdown-di/vite
 ```
 
 ## Quick Start
@@ -336,6 +343,72 @@ preload = ["@markdown-di/bun/plugin"]
 - **Everything else still works** — partials, globs, `$parent` scoping, circular detection; plus a configurable partials root (`partialsRoot` in the nearest `.markdown-di.json`) so `~/`-prefixed paths reach shared partials across directories.
 
 See [`packages/bun`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/bun) for the full guide.
+
+### Data and Collection Imports (Bun and Vite)
+
+Not every markdown file is a template. Declare `export: data` and a file imports as a
+typed object — frontmatter for structure, the body for copy, split by headings:
+
+```md
+---
+export: data
+id: g-brief
+kind: gate
+roles: [product-lead, designer]
+---
+
+# framed
+
+_Gate · mandatory · kill gate_
+
+- **Decides:** product-lead
+
+## DACI
+
+- **Driver:** product-lead
+```
+
+```ts
+import framed from "./process/framed.gate.md";
+
+framed.frontmatter.id;        // "g-brief" (a literal type, via typegen)
+framed.sections.category;     // "Gate · mandatory · kill gate"
+framed.sections.rows;         // [{ label: "Decides", text: "product-lead", line: 12 }]
+framed.sections.sections[0];  // { heading: "DACI", rows: [...], ... }
+```
+
+A **collection** manifest imports every data file under a folder as one array:
+
+```md
+---
+export: collection
+include: "**/*.md"
+exclude: README.md
+---
+```
+
+```ts
+import cards from "./process/process.md";
+
+type CardId = (typeof cards)[number]["frontmatter"]["id"]; // union of literal ids
+```
+
+- **Same semantics everywhere** — `@markdown-di/bun` (runtime and `bun build`) and
+  `@markdown-di/vite` (dev and build) are thin adapters over one browser-safe engine,
+  `@markdown-di/core/modules`. Templates render in the browser; data and collections
+  compile to plain literals.
+- **Literal types** — `markdown-di-typegen` (sibling or `--single-file`) emits data
+  frontmatter as `as const`-style types and collections as readonly tuples.
+- **Strict** — malformed frontmatter, duplicate keys and unknown `export:` values fail
+  with `file:line`.
+- **Why a manifest, not `import cards from './process/**/*.md?glob'`?** A glob specifier
+  can't be typed (TypeScript ambient modules allow one `*` and no relative names) and
+  isn't portable across Bun and Vite; a manifest is an ordinary `.md` import in both, and
+  keeps the glob in one reviewable place.
+
+See [`packages/bun`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/bun#data-imports-export-data)
+for the full reference and [`packages/vite`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/vite)
+for the Vite setup.
 
 ## Use Cases
 

@@ -209,6 +209,39 @@ const processor = new BatchProcessor({
 });
 ```
 
+## Markdown Imports (Bun and Vite)
+
+`@markdown-di/bun` (Bun runtime + `bun build`) and `@markdown-di/vite` (Vite dev + build)
+turn `.md` imports into ES modules, with identical semantics — both are adapters over the
+browser-safe engine in `@markdown-di/core/modules`. The frontmatter `export:` key declares
+what a file imports as:
+
+- absent / `render` — a strict, synchronous render function (`default`), plus
+  `frontmatter` and `source`. Params are declared in a `params:` block
+  (`name: string`, `attempt?: number`); undeclared/missing/mistyped params and tags that
+  render as nothing throw a `RenderError`.
+- `data` — `{ frontmatter, body, sections }` (also named exports). `frontmatter` excludes
+  the `export` key; `body` is the trimmed markdown; `sections` is
+  `{ title, category, paragraphs, rows, content, sections: [{ heading, line, category,
+  paragraphs, rows, content }] }` where `title` is the first `# ` heading, `category` the
+  italic `_…_` tagline, `rows` the `- **Label:** text` items (`{ label, text, line }`) and
+  `sections` the `## ` headings.
+- `collection` — a manifest (`include:` glob(s), optional `exclude:`, relative to the
+  manifest) importing every matched file as data: an array of
+  `{ path, frontmatter, body, sections }` sorted by `path`.
+
+```ts
+// bunfig.toml: preload = ["@markdown-di/bun/plugin"]
+// vite.config.ts: plugins: [markdownDi()]   (import markdownDi from '@markdown-di/vite')
+import cards from './process/process.md' // export: collection
+type CardId = (typeof cards)[number]['frontmatter']['id']
+```
+
+Malformed YAML, duplicate keys and unknown `export:` values fail with `file:line`.
+`markdown-di-typegen` (from `@markdown-di/bun`; sibling `.d.md.ts` files or
+`--single-file out.d.ts`) types templates' params and gives data and collections literal
+(`as const`-style) frontmatter types.
+
 ## Security
 
 - Path traversal protection (blocks `../`)

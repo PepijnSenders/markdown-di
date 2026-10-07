@@ -33,6 +33,7 @@ const RESERVED_NAMES: ReadonlySet<string> = new Set([
   'output-frontmatter',
   'id',
   'schema',
+  'export',
 ])
 
 const DYNAMIC_MARKER = '$dynamic'
