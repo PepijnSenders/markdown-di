@@ -17,7 +17,7 @@ prompts as `.md` files with frontmatter and renders them at the moment of use �
 replacement for core's build-oriented `BatchProcessor`.
 
 A file can also declare itself **data** (`export: data`) and import as a typed object —
-`{ frontmatter, body, sections }` — or be a **collection** manifest (`export: collection`)
+`{ frontmatter, keyLines, body, sections }` — or be a **collection** manifest (`export: collection`)
 that imports every data file under a folder as one typed array. See
 [Data imports](#data-imports-export-data) and [Collections](#collections-export-collection).
 
@@ -194,8 +194,9 @@ framed.sections.sections[0].rows // the DACI rows
 
 | export | value |
 | --- | --- |
-| `default` | `{ frontmatter, body, sections }` |
+| `default` | `{ frontmatter, keyLines, body, sections }` |
 | `frontmatter` | the parsed frontmatter, **without** the `export` key |
+| `keyLines` | the 1-based source line of each top-level frontmatter key, for positional errors |
 | `body` | the markdown after the frontmatter, trimmed |
 | `sections` | the body split by headings (below) |
 
@@ -273,7 +274,7 @@ for (const card of cards) {
 type CardId = (typeof cards)[number]['frontmatter']['id'] // a union of literal ids
 ```
 
-- The default export is an array of `{ path, frontmatter, body, sections }`, sorted by
+- The default export is an array of `{ path, frontmatter, keyLines, body, sections }`, sorted by
   path. The manifest never includes itself.
 - Membership is the opt-in: matched files load as data whether or not they declare
   `export: data`. A matched file that declares a *different* kind fails loudly.
@@ -339,6 +340,7 @@ declare const entries: readonly [
       readonly roles: readonly ["product-lead", "designer"]
       // …
     }
+    readonly keyLines: { readonly [key: string]: number }
     readonly body: string
     readonly sections: MarkdownSections
   },

@@ -14,7 +14,7 @@ describe('data imports (`export: data`)', () => {
     const mod = await import('./fixtures/data/process/02-review/approved.gate.md')
     const card = mod.default
     expect(typeof card).toBe('object')
-    expect(Object.keys(card)).toEqual(['frontmatter', 'body', 'sections'])
+    expect(Object.keys(card)).toEqual(['frontmatter', 'keyLines', 'body', 'sections'])
 
     // frontmatter is the YAML as written, minus the `export` declaration
     expect(card.frontmatter.id).toBe('g-approved')
@@ -26,12 +26,18 @@ describe('data imports (`export: data`)', () => {
     })
     expect('export' in card.frontmatter).toBe(false)
 
+    // keyLines: the source line of each top-level key, minus `export`
+    expect(card.keyLines.id).toBe(3)
+    expect(card.keyLines.routes).toBe(10)
+    expect(Object.keys(card.keyLines)).toEqual(Object.keys(card.frontmatter))
+
     expect(card.body.startsWith('# approved')).toBe(true)
   })
 
   test('named exports mirror the default export', async () => {
     const mod = await import('./fixtures/data/process/02-review/approved.gate.md')
     expect(mod.frontmatter).toBe(mod.default.frontmatter)
+    expect(mod.keyLines).toBe(mod.default.keyLines)
     expect(mod.body).toBe(mod.default.body)
     expect(mod.sections).toBe(mod.default.sections)
   })
@@ -89,7 +95,7 @@ describe('collections (`export: collection`)', () => {
       name: 'intake',
     })
     expect(intake.sections.category).toBe('Node · agent')
-    expect(Object.keys(intake)).toEqual(['path', 'frontmatter', 'body', 'sections'])
+    expect(Object.keys(intake)).toEqual(['path', 'frontmatter', 'keyLines', 'body', 'sections'])
   })
 
   test('a member is the same data a direct import yields', async () => {

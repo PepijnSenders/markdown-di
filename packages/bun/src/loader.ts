@@ -10,10 +10,10 @@ import { createRenderer } from './render'
  * - a template (the default): a strict render function as the default export,
  *   plus `frontmatter` and `source` named exports. The file's own directory is
  *   the base for partial resolution.
- * - `export: data`: `{ frontmatter, body, sections }` as the default export,
+ * - `export: data`: `{ frontmatter, keyLines, body, sections }` as the default export,
  *   plus each as a named export.
  * - `export: collection`: an array of every data file the manifest's `include`
- *   globs match, each `{ path, frontmatter, body, sections }`.
+ *   globs match, each `{ path, frontmatter, keyLines, body, sections }`.
  *
  * Register it via bunfig.toml so static imports work everywhere:
  *

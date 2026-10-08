@@ -28,7 +28,7 @@ const PASSTHROUGH_QUERIES: ReadonlySet<string> = new Set(['import', 't', 'v'])
  *   plus `frontmatter` and `source`. The template and every partial it reaches
  *   are inlined as a snapshot, so rendering needs no filesystem (works in the
  *   browser).
- * - `export: data` — `{ frontmatter, body, sections }`, plus each as a named
+ * - `export: data` — `{ frontmatter, keyLines, body, sections }`, plus each as a named
  *   export. Compiled to a plain object literal: no runtime code at all.
  * - `export: collection` — an array of every data file the manifest's
  *   `include` globs match.

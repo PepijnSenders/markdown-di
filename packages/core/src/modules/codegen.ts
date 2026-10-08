@@ -33,7 +33,8 @@ export interface EmittedModule {
  *   rebuilds a strict render function from it at runtime (no filesystem);
  *   exports `default` (render), `frontmatter`, `source`
  * - a data file becomes a plain object literal; exports `default`
- *   (`{ frontmatter, body, sections }`), `frontmatter`, `body`, `sections`
+ *   (`{ frontmatter, keyLines, body, sections }`), `frontmatter`, `keyLines`,
+ *   `body`, `sections`
  * - a collection manifest becomes an array literal of its members
  *
  * Every strict-mode problem (bad frontmatter, missing partials, an empty
@@ -64,6 +65,7 @@ export function emitModule(
         `const data = ${JSON.stringify(loaded.data)}`,
         'export default data',
         'export const frontmatter = data.frontmatter',
+        'export const keyLines = data.keyLines',
         'export const body = data.body',
         'export const sections = data.sections',
         '',

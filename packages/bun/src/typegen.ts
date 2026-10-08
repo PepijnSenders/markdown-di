@@ -349,17 +349,21 @@ function renderSectionTypesModule(): string {
   return [`declare module '${SECTION_TYPES_MODULE}' {`, indent(SECTION_TYPES, 2), '}'].join('\n')
 }
 
+const KEY_LINES_TYPE = '{ readonly [key: string]: number }'
+
 function dataDeclarations(frontmatter: Record<string, unknown>, declare: string): string {
   const exportDeclare = declare === 'const' ? 'export const' : 'export declare const'
   return [
     `${declare} data: {`,
     `  readonly frontmatter: ${indent(literalType(frontmatter), 2).trimStart()}`,
+    `  readonly keyLines: ${KEY_LINES_TYPE}`,
     '  readonly body: string',
     '  readonly sections: MarkdownSections',
     '}',
     'export default data',
     '',
     `${exportDeclare} frontmatter: typeof data.frontmatter`,
+    `${exportDeclare} keyLines: ${KEY_LINES_TYPE}`,
     `${exportDeclare} body: string`,
     `${exportDeclare} sections: MarkdownSections`,
   ].join('\n')
@@ -371,6 +375,7 @@ function collectionType(entries: Array<{ path: string; frontmatter: Record<strin
       '{',
       `  readonly path: ${JSON.stringify(entry.path)}`,
       `  readonly frontmatter: ${indent(literalType(entry.frontmatter), 2).trimStart()}`,
+      `  readonly keyLines: ${KEY_LINES_TYPE}`,
       '  readonly body: string',
       '  readonly sections: MarkdownSections',
       '}',

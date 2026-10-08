@@ -8,7 +8,7 @@ import type { Sources } from './sources'
  * What a markdown file imports as, declared by its `export:` frontmatter key:
  *
  * - `render` (the default) — a strict render function (a template)
- * - `data` — `{ frontmatter, body, sections }`, no rendering at all
+ * - `data` — `{ frontmatter, keyLines, body, sections }`, no rendering at all
  * - `collection` — a manifest: every data file its `include` globs match
  */
 export type ModuleKind = 'render' | 'data' | 'collection'
@@ -19,6 +19,8 @@ const COLLECTION_KEYS: ReadonlySet<string> = new Set(['export', 'include', 'excl
 /** A data file: its frontmatter (minus `export`), its body, and the body split by headings. */
 export interface DataModule<Frontmatter = Record<string, unknown>> {
   frontmatter: Frontmatter
+  /** 1-based source line of each top-level frontmatter key, so a consumer's validation can point at it. */
+  keyLines: Record<string, number>
   /** The markdown after the frontmatter, trimmed. */
   body: string
   sections: MarkdownSections
@@ -113,8 +115,10 @@ function readMember(path: string, sources: Sources): DataModule {
 
 function toDataModule(document: ExtractedDocument): DataModule {
   const { export: _declaration, ...frontmatter } = document.frontmatter
+  const { export: _declarationLine, ...keyLines } = document.keyLines
   return {
     frontmatter,
+    keyLines,
     body: document.body.trim(),
     sections: parseSections(document.body, document.bodyLine),
   }

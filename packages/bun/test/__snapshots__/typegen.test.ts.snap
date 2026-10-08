@@ -125,12 +125,14 @@ declare const data: {
       },
     ]
   }
+  readonly keyLines: { readonly [key: string]: number }
   readonly body: string
   readonly sections: MarkdownSections
 }
 export default data
 
 export declare const frontmatter: typeof data.frontmatter
+export declare const keyLines: { readonly [key: string]: number }
 export declare const body: string
 export declare const sections: MarkdownSections
 "
@@ -195,12 +197,14 @@ declare module '*approved.gate.md' {
         },
       ]
     }
+    readonly keyLines: { readonly [key: string]: number }
     readonly body: string
     readonly sections: MarkdownSections
   }
   export default data
 
   export const frontmatter: typeof data.frontmatter
+  export const keyLines: { readonly [key: string]: number }
   export const body: string
   export const sections: MarkdownSections
 }
@@ -217,6 +221,7 @@ declare module '*process.md' {
         readonly stage: "intake"
         readonly name: "intake"
       }
+      readonly keyLines: { readonly [key: string]: number }
       readonly body: string
       readonly sections: MarkdownSections
     },
@@ -249,6 +254,7 @@ declare module '*process.md' {
           },
         ]
       }
+      readonly keyLines: { readonly [key: string]: number }
       readonly body: string
       readonly sections: MarkdownSections
     },

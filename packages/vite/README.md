@@ -6,7 +6,7 @@ files in a Vite app with the same semantics as the Bun loader
 
 ```ts
 import compileBrief from './prompts/compile-brief.md' // a strict, typed render function
-import framed from './process/02-frame/framed.gate.md' // export: data → { frontmatter, body, sections }
+import framed from './process/02-frame/framed.gate.md' // export: data → { frontmatter, keyLines, body, sections }
 import cards from './process/process.md' // export: collection → every card, as one array
 
 const prompt = compileBrief({ transcript })
@@ -40,8 +40,8 @@ rules and the `sections` structure are identical to the Bun loader — see the
 | `export:` | default export | named exports |
 | --- | --- | --- |
 | *(absent)* / `render` | `(params?) => string` — a strict render function | `frontmatter`, `source` |
-| `data` | `{ frontmatter, body, sections }` | `frontmatter`, `body`, `sections` |
-| `collection` | `Array<{ path, frontmatter, body, sections }>` — every file the manifest's `include` globs match | — |
+| `data` | `{ frontmatter, keyLines, body, sections }` | `frontmatter`, `keyLines`, `body`, `sections` |
+| `collection` | `Array<{ path, frontmatter, keyLines, body, sections }>` — every file the manifest's `include` globs match | — |
 
 How each compiles:
 

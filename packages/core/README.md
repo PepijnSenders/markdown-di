@@ -103,7 +103,7 @@ docs/getting-started.md:
 - ✅ **Batch processing** - Process entire directories with one API call
 - ✅ **Strict mode** - Opt-in errors for undefined `{{variables}}` (recommended for prompts)
 - ✅ **Typed imports (Bun and Vite)** - `import render from "./file.md"` as a strict, typed render function
-- ✅ **Data imports** - `export: data` files import as typed `{ frontmatter, body, sections }`; `export: collection` manifests import a whole folder as one typed array
+- ✅ **Data imports** - `export: data` files import as typed `{ frontmatter, keyLines, body, sections }`; `export: collection` manifests import a whole folder as one typed array
 
 ## Installation
 
