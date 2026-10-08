@@ -13,7 +13,7 @@
     },
     "packages/bun": {
       "name": "@markdown-di/bun",
-      "version": "0.11.0",
+      "version": "0.12.1",
       "bin": {
         "markdown-di-typegen": "./dist/cli.js",
       },
@@ -27,7 +27,7 @@
     },
     "packages/cli": {
       "name": "@markdown-di/cli",
-      "version": "0.11.0",
+      "version": "0.12.1",
       "bin": {
         "markdown-di": "./dist/index.js",
       },
@@ -45,7 +45,7 @@
     },
     "packages/core": {
       "name": "@markdown-di/core",
-      "version": "0.11.0",
+      "version": "0.12.1",
       "dependencies": {
         "@types/mustache": "4.2.6",
         "fast-glob": "^3.3.3",
@@ -60,7 +60,7 @@
     },
     "packages/vite": {
       "name": "@markdown-di/vite",
-      "version": "0.11.0",
+      "version": "0.12.1",
       "dependencies": {
         "@markdown-di/core": "workspace:^",
       },

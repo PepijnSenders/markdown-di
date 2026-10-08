@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/vite",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "type": "module",
   "description": "Vite plugin for markdown-di - import .md files as typed, strict render functions, typed data, or collections",
   "main": "./dist/index.js",
