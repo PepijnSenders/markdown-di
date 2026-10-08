@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.12.0] - 2026-10-07
+
+### Added
+- **Data imports** (`@markdown-di/bun`, `@markdown-di/vite`): a file with `export: data` in its frontmatter imports as `{ frontmatter, body, sections }` instead of a render function. `sections` splits the body by headings: `title`, the italic `category` line, `- **Label:** text` `rows` (with source lines), `paragraphs`, and every `## ` section.
+- **Collections**: a manifest with `export: collection` and `include`/`exclude` globs imports every matched file as data — one array of `{ path, frontmatter, body, sections }`, sorted by path.
+- **Literal types from typegen**: `markdown-di-typegen` emits data frontmatter as literal (`as const`-style) types and collections as readonly tuples, in sibling and `--single-file` mode, so unions like `(typeof cards)[number]['frontmatter']['id']` derive from the files.
+- **`@markdown-di/vite`**: a new Vite plugin with the Bun loader's import semantics (templates, data, collections) in dev and build. Templates render in the browser from an inlined snapshot rooted at the Vite root; data and collections compile to plain literals.
+- **`@markdown-di/core/modules`**: the browser-safe module engine (frontmatter parser, strict renderer, sections parser, collections, codegen) shared by both adapters, plus `@markdown-di/core/modules/node` for disk access.
+
+### Changed
+- `@markdown-di/bun` now depends on `@markdown-di/core` and re-exports its engine; the strict renderer moved there unchanged (pinned by the existing parity and bundle tests).
+- Frontmatter is parsed without gray-matter (same splitting rules, pinned against gray-matter by tests) and is strict and positional: malformed YAML, duplicate keys and non-mapping frontmatter throw a `RenderError` (`invalid-frontmatter`) whose message ends in `(file:line)`; `RenderError` gains a `line` field.
+- `export` is a reserved frontmatter key (it can't be declared as a param).
+
+
+## [0.11.0] - 2026-07-07
+
+### Changed
+- feat(bun): bundle-compatible loader for `bun build` / `--compile` ([#20](https://github.com/PepijnSenders/markdown-di/pull/20)) by @PepijnSenders
+
+
 ## [0.10.0] - 2026-07-04
 
 ### Changed

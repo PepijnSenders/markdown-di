@@ -36,8 +36,10 @@ jobs:
 
       - name: Determine version bump
         id: version
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          BRANCH_NAME="$HEAD_REF"
           echo "Branch name: $BRANCH_NAME"
 
           if [[ "$BRANCH_NAME" == major/* ]]; then
@@ -79,7 +81,7 @@ jobs:
 
           # Lockstep: every workspace package gets the same version.
           cd ..
-          for pkg in core bun cli; do
+          for pkg in core bun cli vite; do
             node -e "const pkg = require('./$pkg/package.json'); pkg.version = '$NEW_VERSION'; require('fs').writeFileSync('./$pkg/package.json', JSON.stringify(pkg, null, 2) + '\n');"
           done
 
@@ -89,12 +91,13 @@ jobs:
         run: bun install
 
       - name: Update CHANGELOG
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          NEW_VERSION="${{ steps.bump.outputs.version }}"
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_URL="${{ github.event.pull_request.html_url }}"
-          AUTHOR="${{ github.event.pull_request.user.login }}"
           DATE=$(date +%Y-%m-%d)
 
           # Create new changelog entry
@@ -131,7 +134,7 @@ jobs:
 
       - name: Commit version bump and changelog
         run: |
-          git add packages/core/package.json packages/bun/package.json packages/cli/package.json bun.lock CHANGELOG.md
+          git add packages/core/package.json packages/bun/package.json packages/cli/package.json packages/vite/package.json bun.lock CHANGELOG.md
           git commit -m "chore: release v${{ steps.bump.outputs.version }}"
           git push origin main
 
@@ -151,10 +154,10 @@ jobs:
 
       - name: Publish to npm
         # bun publish (not npm publish) so workspace:^ deps are rewritten to
-        # the real version. Order matters: core first, so bun/cli's dep on the
+        # the real version. Order matters: core first, so bun/cli/vite's dep on the
         # new core version resolves the moment they land.
         run: |
-          for pkg in core bun cli; do
+          for pkg in core bun cli vite; do
             (cd packages/$pkg && bun publish --access public)
           done
 

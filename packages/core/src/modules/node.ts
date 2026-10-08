@@ -1,6 +1,27 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import fastGlob from 'fast-glob'
 import { RenderError } from './errors'
+import type { Sources } from './sources'
+
+/**
+ * `@markdown-di/core/modules/node` — the disk side of the module engine, for
+ * adapters that run in Node or Bun (the Bun loader, the Vite plugin, typegen).
+ */
+
+const GLOB_IGNORE = /(^|\/)(node_modules|dist|build)\//
+
+/** The default resolver: reads the real filesystem. */
+export const diskSources: Sources = {
+  read: (path) => readFileSync(path, 'utf-8'),
+  exists: (path) => existsSync(path),
+  glob: (pattern, cwd) =>
+    fastGlob
+      .globSync(pattern, { cwd, absolute: true, onlyFiles: true })
+      .filter((match) => !GLOB_IGNORE.test(relative(cwd, match).replace(/\\/g, '/')))
+      .sort(),
+  partialsRoot: (fromDir) => findPartialsRoot(fromDir),
+}
 
 const CONFIG_FILENAME = '.markdown-di.json'
 
@@ -39,7 +60,11 @@ function partialsRootFrom(configPath: string): string | null {
     )
   }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new RenderError('invalid-declaration', configPath, `${CONFIG_FILENAME} must be a JSON object`)
+    throw new RenderError(
+      'invalid-declaration',
+      configPath,
+      `${CONFIG_FILENAME} must be a JSON object`,
+    )
   }
   const root = (parsed as Record<string, unknown>).partialsRoot
   if (root === undefined) return null

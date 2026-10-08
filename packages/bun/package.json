@@ -1,8 +1,8 @@
 {
   "name": "@markdown-di/bun",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
-  "description": "Bun loader for markdown-di - import .md prompt files as typed, strict render functions",
+  "description": "Bun loader for markdown-di - import .md files as typed, strict render functions or as typed data",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -27,7 +27,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts ./src/plugin.ts ./src/cli.ts --outdir ./dist --target bun --format esm --packages external --splitting && tsc --emitDeclarationOnly",
+    "build": "bun build ./src/index.ts ./src/plugin.ts ./src/cli.ts --outdir ./dist --target bun --format esm --packages external --splitting && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "bun test",
     "prepublishOnly": "bun run build"
   },
@@ -38,7 +38,8 @@
     "plugin",
     "frontmatter",
     "prompts",
-    "typegen"
+    "typegen",
+    "data"
   ],
   "author": "Pepijn Senders",
   "license": "MIT",
@@ -48,13 +49,9 @@
     "directory": "packages/bun"
   },
   "dependencies": {
-    "@types/mustache": "4.2.6",
-    "gray-matter": "^4.0.3",
-    "mustache": "4.2.0",
-    "yaml": "^2.7.0"
+    "@markdown-di/core": "workspace:^"
   },
   "devDependencies": {
-    "@markdown-di/core": "workspace:^",
     "@types/bun": "latest",
     "typescript": "^5.9.3"
   }

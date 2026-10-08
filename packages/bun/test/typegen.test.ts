@@ -206,3 +206,121 @@ describe('typegen single-file mode', () => {
     })
   })
 })
+
+describe('typegen data and collections', () => {
+  const dataFixture = (name: string) => fixture(join('data', name))
+
+  test('a data file declares its frontmatter as a literal type', () => {
+    const contents = generateDeclaration(dataFixture('process/02-review/approved.gate.md'))
+    expect(contents).toMatchSnapshot()
+    expect(contents).toContain('readonly id: "g-approved"')
+    expect(contents).toContain('readonly roles: readonly ["lead", "designer"]')
+    expect(contents).toContain('readonly weight: 3')
+    expect(contents).toContain('readonly mandatory: true')
+    // the `export` declaration is consumed, not data
+    expect(contents).not.toContain('readonly export')
+  })
+
+  test('a collection declares a readonly tuple of its members', () => {
+    const contents = generateDeclaration(dataFixture('process/process.md'))
+    expect(contents).toContain('declare const entries: readonly [')
+    expect(contents).toContain('readonly path: "01-intake/intake.node.md"')
+    expect(contents).toContain('readonly path: "02-review/approved.gate.md"')
+    expect(contents.indexOf('n-intake')).toBeLessThan(contents.indexOf('g-approved'))
+    expect(contents).not.toContain('README')
+  })
+
+  test('single-file mode declares the section types once, as an ambient module', () => {
+    const contents = generateSingleFileDeclaration([
+      dataFixture('process/process.md'),
+      dataFixture('process/02-review/approved.gate.md'),
+      fixture('prompts/compile-brief.md'),
+    ])
+    expect(contents).toMatchSnapshot()
+    expect(contents.match(/declare module 'markdown-di:types'/g)).toHaveLength(1)
+    expect(contents).toContain("declare module '*process.md'")
+    expect(contents).toContain("declare module '*approved.gate.md'")
+  })
+
+  test('single-file mode emits no section types when there is no data', () => {
+    const contents = generateSingleFileDeclaration([fixture('prompts/compile-brief.md')])
+    expect(contents).not.toContain('markdown-di:types')
+  })
+
+  const typecheck = (dir: string) => {
+    const tscBin = Bun.resolveSync('typescript/bin/tsc', import.meta.dir)
+    const result = Bun.spawnSync([process.execPath, tscBin, '-p', dir], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+    return {
+      output: `${result.stdout.toString()}${result.stderr.toString()}`,
+      code: result.exitCode,
+    }
+  }
+
+  const compilerOptions = {
+    module: 'preserve',
+    moduleResolution: 'bundler',
+    strict: true,
+    noEmit: true,
+    skipLibCheck: true,
+    types: [],
+  }
+
+  test('literal types type-check a consumer deriving unions (single-file mode)', () => {
+    withTempDir((dir) => {
+      cpSync(fixture('data'), dir, { recursive: true })
+      typegen(['process/process.md', 'process/02-review/approved.gate.md'], {
+        cwd: dir,
+        singleFile: 'md-types.d.ts',
+      })
+      writeFileSync(
+        join(dir, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions, files: ['consumer.ts', 'md-types.d.ts'] }),
+      )
+      const { output, code } = typecheck(dir)
+      expect(output.trim()).toBe('')
+      expect(code).toBe(0)
+    })
+  })
+
+  test('literal types type-check a consumer deriving unions (sibling .d.md.ts mode)', () => {
+    withTempDir((dir) => {
+      cpSync(fixture('data'), dir, { recursive: true })
+      typegen(['process/process.md', 'process/02-review/approved.gate.md'], { cwd: dir })
+      writeFileSync(
+        join(dir, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: { ...compilerOptions, allowArbitraryExtensions: true },
+          files: ['consumer.ts'],
+        }),
+      )
+      const { output, code } = typecheck(dir)
+      expect(output.trim()).toBe('')
+      expect(code).toBe(0)
+    })
+  })
+
+  test('a wrong literal is a type error', () => {
+    withTempDir((dir) => {
+      cpSync(fixture('data'), dir, { recursive: true })
+      typegen(['process/process.md'], { cwd: dir, singleFile: 'md-types.d.ts' })
+      writeFileSync(
+        join(dir, 'consumer.ts'),
+        [
+          "import cards from './process/process.md'",
+          "const id: 'n-intake' = cards[1].frontmatter.id",
+          'export { id }',
+        ].join('\n'),
+      )
+      writeFileSync(
+        join(dir, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions, files: ['consumer.ts', 'md-types.d.ts'] }),
+      )
+      const { output, code } = typecheck(dir)
+      expect(code).not.toBe(0)
+      expect(output).toContain(`Type '"g-approved"' is not assignable to type '"n-intake"'`)
+    })
+  })
+})

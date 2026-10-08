@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/core",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Parser-agnostic dependency injection for markdown using frontmatter",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "import": "./dist/modules/index.js"
+    },
+    "./modules/node": {
+      "types": "./dist/modules/node.d.ts",
+      "import": "./dist/modules/node.js"
     }
   },
   "files": [
@@ -18,7 +26,7 @@
     "LLMS.txt"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && tsc --emitDeclarationOnly",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && bun build ./src/modules/index.ts ./src/modules/node.ts --outdir ./dist/modules --target node --format esm --packages external --splitting && tsc --emitDeclarationOnly",
     "test": "bun test",
     "prepublishOnly": "bun run build"
   },
