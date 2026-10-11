@@ -1,7 +1,7 @@
 import Mustache from 'mustache'
 import { RenderError } from './errors'
 import { type ExtractedDocument, parseFrontmatter } from './frontmatter'
-import { type ParamSpec, parseParamSpecs, validateArgs } from './params'
+import { normalizeArg, type ParamSpec, parseParamSpecs, validateArgs } from './params'
 import { dirname, isAbsolute, join, normalize, relative } from './path'
 import { recordingSources, type Sources, snapshotSources, type TemplateSnapshot } from './sources'
 import { checkTemplate, hasSections } from './strict'
@@ -96,8 +96,9 @@ export function createRenderer(filePath: string, sources: Sources): Renderer {
     for (const spec of specs) {
       if (spec.source === 'dynamic') delete view[spec.name] // drop '$dynamic' markers
     }
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) view[key] = value
+    for (const spec of specs) {
+      const value = params[spec.name]
+      if (value !== undefined) view[spec.name] = normalizeArg(value, spec.type)
     }
 
     const context: RenderContext = {

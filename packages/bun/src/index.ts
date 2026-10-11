@@ -1,6 +1,7 @@
 export type {
   CollectionEntry,
   DataModule,
+  FieldSpec,
   MarkdownBlock,
   MarkdownRow,
   MarkdownSection,
@@ -8,6 +9,7 @@ export type {
   ModuleKind,
   ParamSpec,
   ParamType,
+  ScalarType,
 } from '@markdown-di/core/modules'
 export { RenderError, type RenderErrorCode } from './errors'
 export { markdownDiBundleLoader, markdownDiLoader } from './loader'
