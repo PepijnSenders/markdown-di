@@ -19,7 +19,16 @@ export {
   type ModuleKind,
   moduleKind,
 } from './module'
-export { type ParamSpec, type ParamType, parseParamSpecs, validateArgs } from './params'
+export {
+  describeType,
+  type FieldSpec,
+  normalizeArg,
+  type ParamSpec,
+  type ParamType,
+  parseParamSpecs,
+  type ScalarType,
+  validateArgs,
+} from './params'
 export {
   collectSources,
   createRenderer,

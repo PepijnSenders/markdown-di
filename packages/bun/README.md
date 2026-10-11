@@ -41,7 +41,7 @@ preload = ["@markdown-di/bun/plugin"]
 
 A prompt file declares its render-time inputs in a `params:` frontmatter block —
 `name: type`, with a `?` suffix for optional params. The type vocabulary is deliberately
-small: `string`, `number`, `boolean`, `string[]`, `number[]`, `boolean[]`.
+small: `string`, `number`, `boolean`, their lists (`string[]`), and records.
 
 ```markdown
 ---
@@ -66,6 +66,47 @@ partials:
 {{#attempt}}
 This is attempt {{attempt}} — address the gaps flagged in the previous review.
 {{/attempt}}
+```
+
+### Records and lists of records
+
+A YAML mapping declares a record, and a one-item YAML sequence declares a list of that
+item. Fields take the same `?` suffix, and they nest:
+
+```markdown
+---
+params:
+  title: string
+  rows:
+    - id: string
+      verdict: string
+      note?: string
+---
+
+# {{title}}
+
+| ID | Verdict | Note |
+| --- | --- | --- |
+{{#rows}}
+| {{id}} | **{{verdict}}** | {{#note}}{{note}}{{/note}}{{^note}}—{{/note}} |
+{{/rows}}
+```
+
+Rendering checks records like params: an undeclared field, a missing required field or a
+wrong type throws with the full path (`param "rows[2].verdict" expected string, got
+number`). An absent optional field resolves to nothing inside its own section. It never
+falls through to a same-named field of an outer frame. Typegen emits `readonly` types, so
+you can pass a `ReadonlyArray`:
+
+```ts
+export interface ReportParams {
+  title: string
+  rows: readonly {
+    readonly id: string
+    readonly verdict: string
+    readonly note?: string | undefined
+  }[]
+}
 ```
 
 Core's `$dynamic` marker also works (`transcript: $dynamic` declares a required, untyped

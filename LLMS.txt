@@ -218,8 +218,10 @@ what a file imports as:
 
 - absent / `render` — a strict, synchronous render function (`default`), plus
   `frontmatter` and `source`. Params are declared in a `params:` block
-  (`name: string`, `attempt?: number`); undeclared/missing/mistyped params and tags that
-  render as nothing throw a `RenderError`.
+  (`name: string`, `attempt?: number`, `tags: string[]`; a mapping declares a record and a
+  one-item sequence a list of it: `rows: [{ id: string, note?: string }]`);
+  undeclared/missing/mistyped params or fields (reported by path, `rows[2].id`) and tags
+  that render as nothing throw a `RenderError`.
 - `data` — `{ frontmatter, body, sections }` (also named exports). `frontmatter` excludes
   the `export` key; `body` is the trimmed markdown; `sections` is
   `{ title, category, paragraphs, rows, content, sections: [{ heading, line, category,

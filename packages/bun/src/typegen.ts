@@ -4,6 +4,7 @@ import {
   loadModule,
   moduleKind,
   type ParamSpec,
+  type ParamType,
   parseFrontmatter,
   parseParamSpecs,
 } from '@markdown-di/core/modules'
@@ -227,7 +228,9 @@ function renderAmbientModule(fileName: string, shape: ModuleShape): string {
     const interfaceName = paramsInterfaceName(fileName)
     lines.push(`  export interface ${interfaceName} {`)
     for (const spec of specs) {
-      lines.push(`    ${propertyName(spec.name)}${spec.required ? '' : '?'}: ${spec.type}`)
+      lines.push(
+        `    ${propertyName(spec.name)}${spec.required ? '' : '?'}: ${tsType(spec.type, '    ')}`,
+      )
     }
     lines.push('  }', '')
     const optional = specs.every((spec) => !spec.required) ? '?' : ''
@@ -439,7 +442,9 @@ function renderDeclaration(fileName: string, specs: ParamSpec[]): string {
     const interfaceName = paramsInterfaceName(fileName)
     lines.push(`export interface ${interfaceName} {`)
     for (const spec of specs) {
-      lines.push(`  ${propertyName(spec.name)}${spec.required ? '' : '?'}: ${spec.type}`)
+      lines.push(
+        `  ${propertyName(spec.name)}${spec.required ? '' : '?'}: ${tsType(spec.type, '  ')}`,
+      )
     }
     lines.push('}', '')
     const optional = specs.every((spec) => !spec.required) ? '?' : ''
@@ -466,6 +471,27 @@ function paramsInterfaceName(fileName: string): string {
     .join('')
   const safe = /^[0-9]/.test(pascal) ? `_${pascal}` : pascal || 'Markdown'
   return `${safe}Params`
+}
+
+/**
+ * A declared param type as a TypeScript type. Lists are `readonly` so callers
+ * can pass `ReadonlyArray`s; records spread over lines at `indent`, and an
+ * optional field also accepts an explicit `undefined`, as the renderer does.
+ */
+function tsType(type: ParamType, indent: string): string {
+  if (typeof type === 'string') return type
+  if (type.kind === 'list') {
+    const item = tsType(type.item, indent)
+    return typeof type.item !== 'string' && type.item.kind === 'list'
+      ? `readonly (${item})[]`
+      : `readonly ${item}[]`
+  }
+  const inner = `${indent}  `
+  const fields = type.fields.map(
+    (field) =>
+      `${inner}readonly ${propertyName(field.name)}${field.required ? '' : '?'}: ${tsType(field.type, inner)}${field.required ? '' : ' | undefined'}`,
+  )
+  return ['{', ...fields, `${indent}}`].join('\n')
 }
 
 function propertyName(name: string): string {
