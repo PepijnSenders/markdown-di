@@ -1,7 +1,24 @@
-import { emitModule, loadModule } from '@markdown-di/core/modules'
+import { emitModule, loadModule, moduleKind, type Renderer } from '@markdown-di/core/modules'
 import { diskSources } from '@markdown-di/core/modules/node'
 import type { BunPlugin } from 'bun'
+import { readFrontmatter } from './frontmatter'
 import { createRenderer } from './render'
+
+// A template imports with its frontmatter read once; its renderer (param specs,
+// partials) is built on the first render, so a program that imports hundreds of
+// prompts and renders a few pays only for those.
+function lazyTemplate(path: string, source: string, frontmatter: Record<string, unknown>) {
+  let renderer: Renderer | undefined
+  const rendererOnce = () => {
+    renderer ??= createRenderer(path)
+    return renderer
+  }
+  return {
+    default: (params?: Record<string, unknown>) => rendererOnce().render(params),
+    frontmatter,
+    source,
+  }
+}
 
 /**
  * Bun loader: importing a `.md` (or `.markdown`) file yields the module its
@@ -9,7 +26,7 @@ import { createRenderer } from './render'
  *
  * - a template (the default): a strict render function as the default export,
  *   plus `frontmatter` and `source` named exports. The file's own directory is
- *   the base for partial resolution.
+ *   the base for partial resolution. The renderer is built on the first render.
  * - `export: data`: `{ frontmatter, keyLines, body, sections }` as the default export,
  *   plus each as a named export.
  * - `export: collection`: an array of every data file the manifest's `include`
@@ -27,12 +44,18 @@ export const markdownDiLoader: BunPlugin = {
   name: '@markdown-di/bun',
   setup(build) {
     build.onLoad({ filter: /\.(md|markdown)$/ }, (args) => {
+      const source = diskSources.read(args.path)
+      const document = readFrontmatter(source, args.path)
+      if (moduleKind(document, args.path) === 'render') {
+        return { loader: 'object', exports: lazyTemplate(args.path, source, document.frontmatter) }
+      }
       const loaded = loadModule(args.path, diskSources)
       switch (loaded.kind) {
-        case 'render': {
-          const { render, frontmatter, source } = createRenderer(args.path)
-          return { loader: 'object', exports: { default: render, frontmatter, source } }
-        }
+        case 'render':
+          return {
+            loader: 'object',
+            exports: lazyTemplate(args.path, source, document.frontmatter),
+          }
         case 'data':
           return { loader: 'object', exports: { default: loaded.data, ...loaded.data } }
         case 'collection':
@@ -57,7 +80,7 @@ export const markdownDiBundleLoader: BunPlugin = {
   name: '@markdown-di/bun/bundle',
   setup(build) {
     build.onLoad({ filter: /\.(md|markdown)$/ }, (args) => {
-      const { code } = emitModule(args.path, diskSources, { runtime: '@markdown-di/bun' })
+      const { code } = emitModule(args.path, diskSources, { runtime: '@markdown-di/bun/runtime' })
       return { loader: 'js', contents: code }
     })
   },

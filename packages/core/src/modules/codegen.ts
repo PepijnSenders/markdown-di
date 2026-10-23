@@ -1,5 +1,5 @@
 import { loadModule, type ModuleKind } from './module'
-import { collectSources } from './render'
+import { collectSources, createRendererFromSnapshot } from './render'
 import { rebaseSnapshot, type Sources } from './sources'
 
 export interface EmitOptions {
@@ -30,8 +30,9 @@ export interface EmittedModule {
  * Compile a markdown file into a self-contained ES module, for bundlers:
  *
  * - a template inlines a snapshot of itself and every partial it reaches, and
- *   rebuilds a strict render function from it at runtime (no filesystem);
- *   exports `default` (render), `frontmatter`, `source`
+ *   rebuilds a strict render function from it on its first render (no
+ *   filesystem, nothing compiled at import); exports `default` (render),
+ *   `frontmatter`, `source`
  * - a data file becomes a plain object literal; exports `default`
  *   (`{ frontmatter, keyLines, body, sections }`), `frontmatter`, `keyLines`,
  *   `body`, `sections`
@@ -50,12 +51,17 @@ export function emitModule(
     case 'render': {
       const captured = collectSources(loaded.path, sources)
       const snapshot = options.root ? rebaseSnapshot(captured, options.root) : captured
+      // Built once here so every strict-mode error still throws at build time; the
+      // emitted module rebuilds it on the first render, so importing a template
+      // costs no frontmatter parse and no partial compilation.
+      const { frontmatter, source } = createRendererFromSnapshot(snapshot)
       const code = [
         `import { createRendererFromSnapshot as __fromSnapshot } from ${JSON.stringify(options.runtime)}`,
-        `const __renderer = __fromSnapshot(${JSON.stringify(snapshot)})`,
-        'export default __renderer.render',
-        'export const frontmatter = __renderer.frontmatter',
-        'export const source = __renderer.source',
+        'let __renderer',
+        `const __rendererOnce = () => (__renderer ??= __fromSnapshot(${JSON.stringify(snapshot)}))`,
+        'export default (params) => __rendererOnce().render(params)',
+        `export const frontmatter = ${JSON.stringify(frontmatter)}`,
+        `export const source = ${JSON.stringify(source)}`,
         '',
       ].join('\n')
       return { kind: 'render', code, files: Object.keys(captured.files) }
