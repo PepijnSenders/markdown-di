@@ -1,6 +1,6 @@
 {
   "name": "@markdown-di/bun",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "type": "module",
   "description": "Bun loader for markdown-di - import .md files as typed, strict render functions or as typed data",
   "main": "./dist/index.js",
