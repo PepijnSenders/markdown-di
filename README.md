@@ -133,6 +133,12 @@ bun add @markdown-di/bun
 npm install -D @markdown-di/vite
 ```
 
+### Typed imports in TypeScript 7.1 (no typegen)
+
+```bash
+npm install -D @markdown-di/content-mapper
+```
+
 ## Quick Start
 
 ### CLI Usage (Recommended)
@@ -343,6 +349,8 @@ preload = ["@markdown-di/bun/plugin"]
 - **Everything else still works** — partials, globs, `$parent` scoping, circular detection; plus a configurable partials root (`partialsRoot` in the nearest `.markdown-di.json`) so `~/`-prefixed paths reach shared partials across directories.
 
 See [`packages/bun`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/bun) for the full guide.
+
+On TypeScript 7.1 or later, [`@markdown-di/content-mapper`](https://github.com/PepijnSenders/markdown-di/tree/main/packages/content-mapper) replaces the typegen step: register it under `contentMappers` in `tsconfig.json`, and `tsc --runExternalCode` and the editor type every `.md` import from its frontmatter as you edit it. Go to definition on a param lands on its frontmatter key, and frontmatter errors are reported in the `.md` file.
 
 ### Data and Collection Imports (Bun and Vite)
 

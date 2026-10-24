@@ -81,7 +81,7 @@ jobs:
 
           # Lockstep: every workspace package gets the same version.
           cd ..
-          for pkg in core bun cli vite; do
+          for pkg in core bun cli vite content-mapper; do
             node -e "const pkg = require('./$pkg/package.json'); pkg.version = '$NEW_VERSION'; require('fs').writeFileSync('./$pkg/package.json', JSON.stringify(pkg, null, 2) + '\n');"
           done
 
@@ -134,7 +134,7 @@ jobs:
 
       - name: Commit version bump and changelog
         run: |
-          git add packages/core/package.json packages/bun/package.json packages/cli/package.json packages/vite/package.json bun.lock CHANGELOG.md
+          git add packages/core/package.json packages/bun/package.json packages/cli/package.json packages/vite/package.json packages/content-mapper/package.json bun.lock CHANGELOG.md
           git commit -m "chore: release v${{ steps.bump.outputs.version }}"
           git push origin main
 
@@ -154,10 +154,10 @@ jobs:
 
       - name: Publish to npm
         # bun publish (not npm publish) so workspace:^ deps are rewritten to
-        # the real version. Order matters: core first, so bun/cli/vite's dep on the
+        # the real version. Order matters: core first, so bun/cli/vite/content-mapper's dep on the
         # new core version resolves the moment they land.
         run: |
-          for pkg in core bun cli vite; do
+          for pkg in core bun cli vite content-mapper; do
             (cd packages/$pkg && bun publish --access public)
           done
 

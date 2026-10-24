@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // Typecheck-only: @markdown-di/core/modules resolves to core's source via
+    // the root `paths`. The build (tsconfig.build.json) emits declarations.
+    "composite": false,
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
