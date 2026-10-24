@@ -93,7 +93,7 @@ describe('tsc 7.1 with the content mapper', () => {
     })
     expect(exitCode).toBe(2)
     expect(output).toContain(
-      '<project>/src/typo.md(2,1): error markdown-di1002: param "a" has unsupported type "strin"',
+      'typo.md(2,1): error markdown-di1002: param "a" has unsupported type "strin"',
     )
   })
 })
