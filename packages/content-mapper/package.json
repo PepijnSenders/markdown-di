@@ -1,0 +1,57 @@
+{
+  "name": "@markdown-di/content-mapper",
+  "version": "0.14.0",
+  "type": "module",
+  "description": "TypeScript 7.1+ content mapper for markdown-di - type .md imports in tsc and the editor, no generated declaration files",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "typescript": {
+    "contentMapper": {
+      "exec": [
+        "node",
+        "./dist/server.js"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts ./src/server.ts --outdir ./dist --target node --format esm --packages external --splitting && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "markdown",
+    "typescript",
+    "content-mapper",
+    "frontmatter",
+    "prompts",
+    "typegen"
+  ],
+  "author": "Pepijn Senders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PepijnSenders/markdown-di.git",
+    "directory": "packages/content-mapper"
+  },
+  "dependencies": {
+    "@markdown-di/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "typescript7": "npm:typescript@7.1.0-beta"
+  }
+}

@@ -8,6 +8,16 @@
  * inlined snapshot in a browser bundle.
  */
 export { type EmitOptions, type EmittedModule, emitModule } from './codegen'
+export {
+  type ModuleShape,
+  paramsInterfaceName,
+  propertyName,
+  readModuleShape,
+  renderAmbientModule,
+  renderFallbackModule,
+  renderModuleDeclaration,
+  renderSectionTypesModule,
+} from './declarations'
 export { RenderError, type RenderErrorCode } from './errors'
 export { type ExtractedDocument, parseFrontmatter } from './frontmatter'
 export {
